@@ -1,0 +1,6 @@
+debug: true
+lore-enchantments-version: 0.0
+enchantments:
+  volley:
+    deviation-per-level: 3
+    max-level: 10

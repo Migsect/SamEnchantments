@@ -1,0 +1,6 @@
+name: SamEnchantments
+main: net.samongi.SamEnchantments.SamEnchantments
+version: 0.0
+description: Usings LoreEnchantments API to add more enchantments.
+author: Migsect
+depend: [LoreEnchantments]
