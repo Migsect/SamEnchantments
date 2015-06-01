@@ -1,29 +1,31 @@
 package net.samongi.SamEnchantments.PotionEnchantments;
 
-import net.samongi.LoreEnchantments.EventHandling.LoreEnchantment;
-import net.samongi.LoreEnchantments.Interfaces.OnEntityDamageEntity;
-import net.samongi.LoreEnchantments.Utilities.StringUtilities;
-import net.samongi.SamEnchantments.SamEnchantments;
-
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
 
-public class EnchantmentCoated extends LoreEnchantment implements OnEntityDamageEntity
+import net.samongi.LoreEnchantments.EventHandling.LoreEnchantment;
+import net.samongi.LoreEnchantments.Interfaces.OnEntityArrowHitEntity;
+import net.samongi.LoreEnchantments.Utilities.StringUtilities;
+import net.samongi.SamEnchantments.SamEnchantments;
+
+public class EnchantmentTipped extends LoreEnchantment implements OnEntityArrowHitEntity
 {
+
   @SuppressWarnings("unused")
   private JavaPlugin plugin;
   
-  public EnchantmentCoated(JavaPlugin plugin, String name, String config_key)
+  public EnchantmentTipped(JavaPlugin plugin, String name, String config_key)
   {
     super(name, plugin);
     this.plugin = plugin;
   }
 
+
   @Override
-  public void onEntityDamageEntity(EntityDamageByEntityEvent event, LoreEnchantment ench, String[] data)
+  public void onEntityArrowHitEntity(EntityDamageByEntityEvent event, LoreEnchantment ench, String[] data)
   {
     // We expect the last to be duration, the second to last being the amplitude
     //   and the left overs to be the potioneffect.
@@ -53,7 +55,6 @@ public class EnchantmentCoated extends LoreEnchantment implements OnEntityDamage
     LivingEntity entity = (LivingEntity)event.getEntity();
     PotionEffect p_effect = new PotionEffect(type, time * 20, strength-1, true, true);
     entity.addPotionEffect(p_effect);
-    
   }
   
   private PotionEffectType translatePotionEffect(String str)
@@ -88,5 +89,4 @@ public class EnchantmentCoated extends LoreEnchantment implements OnEntityDamage
     }
     return null;
   }
-
 }

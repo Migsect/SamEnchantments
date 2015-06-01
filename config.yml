@@ -1,6 +1,38 @@
 debug: true
-lore-enchantments-version: 0.0
+lore-enchantments-version: '0.0'
 enchantments:
   volley:
-    deviation-per-level: 3
+    name: Volley
+    type: VOLLEY
     max-level: 10
+    arrow-exp: 'pow(2,L)'
+    devia-exp: '3 * L'
+  tipped:
+    name: Tipped
+    type: TIPPED
+    max-level: 10
+  coated:
+    name: Coated
+    type: COATED
+    max-level: 10
+  flourish:
+    name: Flourish
+    type: FLOURISH
+    max-level: 10
+    exp: 'B * D * 0.25 * L'
+  assassination:
+    name: Assassination
+    type: Assassination
+    max-level: 10
+    exp: 'B * (1 + (0.5 * L))'
+    arc: 45
+  celerity:
+    name: Celerity
+    type: CELERITY
+    max-level: 10
+    exp: 'B *(1 + (0.5 * L))'
+  fire-critical:
+    name Fire Critical
+    type: FIRE_CRITICAL
+    max-level: 10
+    exp: 'B * (1 + (0.5 * L))'

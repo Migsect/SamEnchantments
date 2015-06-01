@@ -4,6 +4,9 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 
+import javax.script.ScriptEngine;
+import javax.script.ScriptException;
+
 import org.bukkit.entity.Arrow;
 import org.bukkit.entity.EntityType;
 import org.bukkit.event.entity.EntityShootBowEvent;
@@ -19,16 +22,45 @@ import net.samongi.SamEnchantments.SamEnchantments;
 
 public class EnchantmentVolley extends LoreEnchantment implements OnEntityShootBow
 {
-  private JavaPlugin plugin;
+  private final JavaPlugin plugin;
+  private int max_level;
+  private String arrow_exp;
+  private String devia_exp;
   
-  public EnchantmentVolley(JavaPlugin plugin)
+  public EnchantmentVolley(JavaPlugin plugin, String name, String config_key)
   {
-    super("Volley");
+    super(name, plugin);
     this.plugin = plugin;
+    
+    // Getting information from the config:
+    this.max_level = plugin.getConfig().getInt("enchantments."+config_key+".max-level",10);
+    SamEnchantments.debugLog("Found max-level to be for volley: '" + max_level + "'");
+    this.devia_exp = plugin.getConfig().getString("enchantments."+config_key+".devia-exp","2 * L");
+    devia_exp = devia_exp.toLowerCase().replace("pow", "Math.pow");
+    this.arrow_exp = plugin.getConfig().getString("enchantments."+config_key+".arrow-exp","pow(2,L)");
+    arrow_exp = arrow_exp.toLowerCase().replace("pow", "Math.pow");
+    
+    // We are going to use a script engine to evaluate the expressions in the config.
+    ScriptEngine eng = SamEnchantments.getJavaScriptEngine();
+    // testing the expressions first:
+    SamEnchantments.debugLog("Testing expression for deviation: '" + devia_exp + "'");
+    try{eng.eval(devia_exp.replace("l", ""+ 0).replace("f", ""+0.0));}
+    catch (ScriptException e1)
+    {
+      SamEnchantments.log("Expression: '" + devia_exp + "' under key '" + config_key + "' did not parse correctly");
+      return;
+    }
+    SamEnchantments.debugLog("Testing expression for arrows amount: '" + arrow_exp + "'");
+    try{eng.eval(arrow_exp.replace("l", ""+ 0).replace("f", ""+0.0));}
+    catch (ScriptException e1)
+    {
+      SamEnchantments.log("Expression: '" + arrow_exp + "' under key '" + config_key + "' did not parse correctly");
+      return;
+    } 
   }
 
   @Override
-  public void onEntityShootBow(EntityShootBowEvent event, String[] data)
+  public void onEntityShootBow(EntityShootBowEvent event, LoreEnchantment ench, String[] data)
   {
     Arrow arrow = (Arrow)event.getProjectile();
     
@@ -42,8 +74,9 @@ public class EnchantmentVolley extends LoreEnchantment implements OnEntityShootB
     if(ench_level == 0) ench_level = StringUtilities.numeralToInt(power);
     if(ench_level == 0) return;
     SamEnchantments.debugLog("Enchantment Volley found level to be: " + ench_level);
-    int max_level = plugin.getConfig().getInt("enchantments.volley.max-level",10);
-    if(ench_level > max_level) ench_level = max_level;
+    if(ench_level > this.max_level) ench_level = this.max_level;
+    SamEnchantments.debugLog("Enchantment Volley found 'true' level to be: " + ench_level);
+    
     Vector main_vector = arrow.getVelocity();
     // double distance = main_vector.length();
     // double yaw = getYaw(main_vector);
@@ -51,19 +84,43 @@ public class EnchantmentVolley extends LoreEnchantment implements OnEntityShootB
     // double pitch = getPitch(main_vector);
     // SamEnchantments.debugLog("Pitch for vector <" + main_vector.getX() + ", " + main_vector.getY() + ", " + main_vector.getZ() + "> : " + pitch);
     
-    double deviation = ench_level * plugin.getConfig().getDouble("enchantments.volley.deviation-per-level",3);
-    // double max_deviation = plugin.getConfig().getDouble("enchantments.volley.max-deviation",3);
-    // double max_yaw_diff = ench_level*3;//plugin.getConfig().getDouble("enchantment-config.volley.yaw", 5.0);
-    // double max_pitch_diff = ench_level*3;//plugin.getConfig().getDouble("enchantment-config.volley.pitch", 5.0);
+    double force = event.getForce();
+    double deviation = 0;
+    ScriptEngine eng = SamEnchantments.getJavaScriptEngine();
+    try
+    {
+      String var_exp = devia_exp.replace("l", ""+ench_level).replace("f", ""+force);
+      
+      Object ret = eng.eval(var_exp);
+      
+      double value = 0; 
+      if(ret instanceof Integer) value = ((Integer)ret).intValue();
+      else if(ret instanceof Double) value = ((Double)ret).doubleValue();
+      deviation = value;
+    }
+    catch (ScriptException e){deviation = 0;}
+    SamEnchantments.debugLog("Enchantment Volley found deviation to be: " + deviation);
     
-    if(ench_level < 1) return;
-    int arrow_num = (int) Math.pow(2,ench_level); // The number of extra arrows is exponential.
+    int arrow_num = 0;
+    try
+    {
+      String var_exp = arrow_exp.replace("l", ""+ench_level).replace("f", ""+force);
+      
+      Object ret = eng.eval(var_exp);
+      
+      int value = 0; 
+      if(ret instanceof Integer) value = ((Integer)ret).intValue();
+      else if(ret instanceof Double) value = (int) ((Double)ret).doubleValue();
+      arrow_num = value;
+    }
+    catch (ScriptException e){arrow_num = 0;}
+    SamEnchantments.debugLog("Enchantment Volley found extra arrows to be: " + arrow_num);
     
     Random rand = new Random();
     // Making a list of the new_traj to file
     List<Vector> new_trajs = new ArrayList<>();
     // for(int i = 0 ; i <= arrow_num ; i++ ) new_trajs.add(fromEuler(distance, (yaw-.5*max_yaw_diff) + rand.nextDouble() * max_yaw_diff, (pitch-.5*max_pitch_diff) + rand.nextDouble() * max_pitch_diff));
-    for(int i = 0 ; i <= arrow_num ; i++ ) 
+    for(int i = 0 ; i < arrow_num ; i++ ) 
     {
       double x_rotate = (-deviation/2) + (deviation * rand.nextDouble());
       double y_rotate = (-deviation/2) + (deviation * rand.nextDouble());
