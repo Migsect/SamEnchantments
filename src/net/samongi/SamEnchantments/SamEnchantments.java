@@ -64,6 +64,11 @@ public class SamEnchantments extends JavaPlugin
   private final void registerEnchantments()
   {
     LoreEnchantmentsAPI api = LoreEnchantments.getAPI(this);
+    if(this.getConfig().getConfigurationSection("enchantments") == null)
+    {
+      SamEnchantments.log("Found no Enchantments configured. There will be no function if you do not configure any enchantments.");
+      return;
+    }
     Set<String> keys = this.getConfig().getConfigurationSection("enchantments").getKeys(false);
     for(String k : keys)
     {
