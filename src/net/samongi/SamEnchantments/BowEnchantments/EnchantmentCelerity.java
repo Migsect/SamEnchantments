@@ -111,7 +111,10 @@ public class EnchantmentCelerity extends LoreEnchantment implements OnEntityShoo
     SamEnchantments.debugLog("Enchantment Celerity found final z-component to be: " + new_velocity.getZ());
     
     arrow.setVelocity(new_velocity);
-    event.setProjectile(arrow);
+    
+    // fixing arrow damage
+    double velocity_ratio = Math.sqrt(base_velocity.lengthSquared() / new_velocity.lengthSquared());
+    arrow.spigot().setDamage(arrow.spigot().getDamage() * velocity_ratio);
   }
 
 }
