@@ -12,6 +12,7 @@ import javax.script.ScriptEngineManager;
 import net.samongi.LoreEnchantments.LoreEnchantmentsAPI;
 import net.samongi.LoreEnchantments.LoreEnchantments;
 import net.samongi.LoreEnchantments.EventHandling.LoreEnchantment;
+import net.samongi.SamEnchantments.Abilities.EnchantmentShadowStep;
 import net.samongi.SamEnchantments.BowEnchantments.EnchantmentCelerity;
 import net.samongi.SamEnchantments.BowEnchantments.EnchantmentVolley;
 import net.samongi.SamEnchantments.PotionEnchantments.EnchantmentCoated;
@@ -84,6 +85,7 @@ public class SamEnchantments extends JavaPlugin
         case "ASSASSINATION":   new_ench = new EnchantmentAssassination(this, name, k); break;
         case "CELERITY":        new_ench = new EnchantmentCelerity(this, name, k); break;
         case "FIRE_CRITICAL":   new_ench = new EnchantmentFireCritical(this, name, k); break;
+        case "SHADOW_STEP":     new_ench = new EnchantmentShadowStep(this, name, k); break;
         default: continue;
       }
       api.registerEnchantment(new_ench, this);

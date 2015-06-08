@@ -36,3 +36,10 @@ enchantments:
     type: FIRE_CRITICAL
     max-level: 10
     exp: 'B * (1 + (0.5 * L))'
+  shadow-step:
+    name: Shadow Step
+    type: SHADOW_STEP
+    max-level: 10
+    min-dist-exp: '5'
+    max-dist-exp: '5 * L'
+    recharge-exp: '2.5 * L + 2.5'

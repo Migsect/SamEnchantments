@@ -10,8 +10,9 @@ import org.bukkit.util.Vector;
 
 import net.samongi.LoreEnchantments.EventHandling.LoreEnchantment;
 import net.samongi.LoreEnchantments.Interfaces.OnEntityDamageEntity;
-import net.samongi.LoreEnchantments.Utilities.StringUtilities;
+import net.samongi.LoreEnchantments.Util.StringUtil;
 import net.samongi.SamEnchantments.SamEnchantments;
+import net.samongi.SamongiLib.Effects.EffectUtil;
 
 public class EnchantmentAssassination extends LoreEnchantment implements OnEntityDamageEntity
 {
@@ -57,7 +58,7 @@ public class EnchantmentAssassination extends LoreEnchantment implements OnEntit
     String power = data[0];
     int ench_level = 0;
     try{ench_level = Integer.parseInt(power);} catch(NumberFormatException e){}
-    if(ench_level == 0) ench_level = StringUtilities.numeralToInt(power);
+    if(ench_level == 0) ench_level = StringUtil.numeralToInt(power);
     if(ench_level == 0) return;
     SamEnchantments.debugLog("Enchantment Assassination found level to be: " + ench_level);
     if(ench_level > this.max_level) ench_level = this.max_level;
@@ -92,6 +93,8 @@ public class EnchantmentAssassination extends LoreEnchantment implements OnEntit
     if(new_damage < base_damage) new_damage = base_damage;
     SamEnchantments.debugLog("Assassination Enchantment set damage: " + new_damage);
     event.setDamage(new_damage);
+    
+    EffectUtil.displayDustSphereCloud(entity.getEyeLocation(), 255, 0, 0, 30, 1);
   }
 
 }

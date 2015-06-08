@@ -17,7 +17,7 @@ import org.bukkit.util.Vector;
 
 import net.samongi.LoreEnchantments.EventHandling.LoreEnchantment;
 import net.samongi.LoreEnchantments.Interfaces.OnEntityShootBow;
-import net.samongi.LoreEnchantments.Utilities.StringUtilities;
+import net.samongi.LoreEnchantments.Util.StringUtil;
 import net.samongi.SamEnchantments.SamEnchantments;
 
 public class EnchantmentVolley extends LoreEnchantment implements OnEntityShootBow
@@ -71,7 +71,7 @@ public class EnchantmentVolley extends LoreEnchantment implements OnEntityShootB
     String power = data[0];
     int ench_level = 0;
     try{ench_level = Integer.parseInt(power);} catch(NumberFormatException e){}
-    if(ench_level == 0) ench_level = StringUtilities.numeralToInt(power);
+    if(ench_level == 0) ench_level = StringUtil.numeralToInt(power);
     if(ench_level == 0) return;
     SamEnchantments.debugLog("Enchantment Volley found level to be: " + ench_level);
     if(ench_level > this.max_level) ench_level = this.max_level;

@@ -2,7 +2,7 @@ package net.samongi.SamEnchantments.PotionEnchantments;
 
 import net.samongi.LoreEnchantments.EventHandling.LoreEnchantment;
 import net.samongi.LoreEnchantments.Interfaces.OnEntityDamageEntity;
-import net.samongi.LoreEnchantments.Utilities.StringUtilities;
+import net.samongi.LoreEnchantments.Util.StringUtil;
 import net.samongi.SamEnchantments.SamEnchantments;
 
 import org.bukkit.entity.LivingEntity;
@@ -28,12 +28,12 @@ public class EnchantmentCoated extends LoreEnchantment implements OnEntityDamage
     // We expect the last to be duration, the second to last being the amplitude
     //   and the left overs to be the potioneffect.
     if(data.length < 3) return;
-    int time = StringUtilities.getSeconds(data[data.length - 1]);
+    int time = StringUtil.getSeconds(data[data.length - 1]);
     if(time == 0) return;
     SamEnchantments.debugLog("Enchantment Coated found duration to be: " + time);
     int strength = 0;
     try{strength = Integer.parseInt(data[data.length - 2]);}catch(NumberFormatException e){};
-    if(strength == 0) strength = StringUtilities.numeralToInt(data[data.length - 2]);
+    if(strength == 0) strength = StringUtil.numeralToInt(data[data.length - 2]);
     if(strength == 0) return;
     SamEnchantments.debugLog("Enchantment Coated found strength to be: " + strength);
     // Bring back together the heading elements
