@@ -17,7 +17,6 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.util.Vector;
 
-import net.minecraft.server.v1_8_R2.Material;
 import net.samongi.LoreEnchantments.EventHandling.LoreEnchantment;
 import net.samongi.LoreEnchantments.Interfaces.OnPlayerInteract;
 import net.samongi.LoreEnchantments.Interfaces.OnPlayerInteractEntity;
@@ -34,7 +33,12 @@ public class EnchantmentShadowStep extends LoreEnchantment implements OnPlayerIn
   private String max_distance_exp;
   private String min_distance_exp;
   private String recharge_exp;
+  @SuppressWarnings("unused")
   private double behind_distance;
+  
+  //private String teleport_sound;
+  //private String fail_sound;
+  //private String recharge_sound;
   
   private Set<ItemStack> recharging_items = new HashSet<>();
   private Set<RechargeLater> recharge_tasks = new HashSet<>();
@@ -51,7 +55,7 @@ public class EnchantmentShadowStep extends LoreEnchantment implements OnPlayerIn
     this.min_distance_exp = this.min_distance_exp.toLowerCase().replace("pow", "Math.pow");
     this.recharge_exp = plugin.getConfig().getString("enchantments."+config_key+".recharge-exp","2.5 * L + 10");
     this.recharge_exp = this.recharge_exp.toLowerCase().replace("pow", "Math.pow");
-    this.behind_distance = plugin.getConfig().getDouble("enchantments." + config_key + ".behind-distance", 1.5);
+    this.behind_distance = plugin.getConfig().getDouble("enchantments." + config_key + ".behind-distance", 1);
     
     // Testing the expressions:
     SamEnchantments.debugLog("Testing expression: '" + this.max_distance_exp + "'");
@@ -128,6 +132,7 @@ public class EnchantmentShadowStep extends LoreEnchantment implements OnPlayerIn
       max_distance = value;
     }
     catch (ScriptException e){max_distance = 0;}
+    SamEnchantments.debugLog("Enchantment Shadow Step found max-distance to be " + max_distance);
     
     // Getting the min distance
     double min_distance = 0;
@@ -143,6 +148,7 @@ public class EnchantmentShadowStep extends LoreEnchantment implements OnPlayerIn
       min_distance = value;
     }
     catch (ScriptException e){min_distance = 0;}
+    SamEnchantments.debugLog("Enchantment Shadow Step found min-distance to be " + min_distance);
     if(min_distance >= max_distance) return;
     
     // Getting recharge time 
@@ -159,18 +165,38 @@ public class EnchantmentShadowStep extends LoreEnchantment implements OnPlayerIn
       recharge_time = value;
     }
     catch (ScriptException e){recharge_time = 0;}
+    SamEnchantments.debugLog("Enchantment Shadow Step found recharge time to be " + recharge_time);
     
     Player player = event.getPlayer();
     LivingEntity entity = EntityUtil.getLookedAtEntity(player, ench_level * max_distance, 1);
-    if(entity == null) return;
+    if(entity == null) 
+    { 
+      SamEnchantments.debugLog("No target entity found, returning.");
+      return;
+    }
     
-    Vector e_dir = entity.getLocation().getDirection().multiply(-behind_distance);
+    Vector e_dir = entity.getLocation().getDirection().multiply(-1);
+    // double step_x = entity.getLocation().getX() + (behind_distance / Math.sqrt(Math.pow(e_dir.getX(),2) + Math.pow(e_dir.getY(),2)) * e_dir.getX());
     double step_x = entity.getLocation().getX() + e_dir.getX();
     double step_y = entity.getLocation().getY();
+    // double step_z = entity.getLocation().getZ() + (behind_distance / Math.sqrt(Math.pow(e_dir.getX(),2) + Math.pow(e_dir.getY(),2)) * e_dir.getZ());
     double step_z = entity.getLocation().getZ() + e_dir.getZ();
+    // double step_h_x = entity.getEyeLocation().getX() + (behind_distance / Math.sqrt(Math.pow(e_dir.getX(),2) + Math.pow(e_dir.getY(),2)) * e_dir.getX());
+    double step_h_x = entity.getEyeLocation().getX() + e_dir.getX();
+    double step_h_y = entity.getEyeLocation().getY();
+    // double step_h_z = entity.getEyeLocation().getZ() + (behind_distance / Math.sqrt(Math.pow(e_dir.getX(),2) + Math.pow(e_dir.getY(),2)) * e_dir.getZ());
+    double step_h_z = entity.getEyeLocation().getZ() + e_dir.getZ();
     Location step_loc = new Location(entity.getWorld(), step_x, step_y, step_z);
+    Location step_h_loc = new Location(entity.getWorld(), step_h_x, step_h_y, step_h_z);
     step_loc.setDirection(entity.getLocation().getDirection());
-    if(!step_loc.getBlock().getType().equals(Material.AIR)) return; // No teleport
+    
+    // Tests to ensure you can actually go there.
+    if(step_h_loc.getBlock().getType().isSolid()) 
+    {
+      SamEnchantments.debugLog("Teleport to head block is not air, returning.");
+      return; // No teleport if head is not there
+    }
+    
     player.getWorld().playSound(player.getLocation(), Sound.ENDERMAN_TELEPORT, 1.0F, 1.0F);
     EffectUtil.displayDustCylinderCloud(player.getEyeLocation(), 0, 0, 0, 100, 1, 2);
     player.teleport(step_loc);
