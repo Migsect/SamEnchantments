@@ -8,83 +8,66 @@ import javax.script.ScriptException;
 
 import org.bukkit.Location;
 import org.bukkit.Sound;
-import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.java.JavaPlugin;
-import org.bukkit.util.Vector;
 
 import net.samongi.LoreEnchantments.EventHandling.LoreEnchantment;
 import net.samongi.LoreEnchantments.Interfaces.OnPlayerInteract;
-import net.samongi.LoreEnchantments.Util.ActionUtil.ActionType;
-import net.samongi.LoreEnchantments.Util.EntityUtil;
 import net.samongi.LoreEnchantments.Util.Recharging;
 import net.samongi.LoreEnchantments.Util.StringUtil;
+import net.samongi.LoreEnchantments.Util.ActionUtil.ActionType;
 import net.samongi.SamEnchantments.SamEnchantments;
-import net.samongi.SamongiLib.Effects.EffectUtil;
 
-public class EnchantmentShadowStep extends LoreEnchantment implements OnPlayerInteract, Recharging
-{ 
+public class EnchantmentExplode extends LoreEnchantment implements OnPlayerInteract, Recharging
+{
   private int max_level;
   
-  private String max_distance_exp;
-  private String min_distance_exp;
-  private double behind_distance;
+  private String power_exp;
+  private boolean destroy_blocks;
+  private boolean set_fire;
   
   private String recharge_exp;
   private boolean show_on_durability;
   
   private ActionType action_type;
   
-  private String teleport_sound;
   private String cooldown_complete_sound;
   private String cooldown_pending_sound;
   
   private Set<ItemStack> recharging_items = new HashSet<>();
   private Set<RechargeLater> recharge_tasks = new HashSet<>();
   
-  public EnchantmentShadowStep(JavaPlugin plugin, String name, String config_key)
+  public EnchantmentExplode(JavaPlugin plugin, String name, String config_key)
   {
     super(name, plugin);
-    
     this.max_level = plugin.getConfig().getInt("enchantments." + config_key + ".max-level", 10);
     
-    this.max_distance_exp = plugin.getConfig().getString("enchantments."+config_key+".max-dist-exp","5 * L");
-    this.max_distance_exp = this.max_distance_exp.toLowerCase().replace("pow", "Math.pow");
-    this.min_distance_exp = plugin.getConfig().getString("enchantments."+config_key+".min-dist-exp","5");
-    this.min_distance_exp = this.min_distance_exp.toLowerCase().replace("pow", "Math.pow");
-    this.behind_distance = plugin.getConfig().getDouble("enchantments." + config_key + ".behind-distance", 1);
+    this.power_exp = plugin.getConfig().getString("enchantments."+config_key+".power-exp","4 * L");
+    this.power_exp = this.power_exp.toLowerCase().replace("pow", "Math.pow");
+    this.destroy_blocks = plugin.getConfig().getBoolean("enchantments."+config_key+".destroy-blocks", false);
+    this.set_fire = plugin.getConfig().getBoolean("enchantments."+config_key+".set-fire", false);
     
-    this.recharge_exp = plugin.getConfig().getString("enchantments."+config_key+".recharge-exp","2.5 * L + 2.5");
+    this.recharge_exp = plugin.getConfig().getString("enchantments."+config_key+".recharge-exp","2.5 * L + 10");
     this.recharge_exp = this.recharge_exp.toLowerCase().replace("pow", "Math.pow");
     this.show_on_durability = plugin.getConfig().getBoolean("enchantments."+config_key+".recharge-durability", false);
     
     this.action_type = ActionType.valueOf(plugin.getConfig().getString("enchantments."+config_key+".action-type","RIGHT_CLICK_AIR"));
     
-    this.teleport_sound = plugin.getConfig().getString("enchantments."+config_key+".sound.teleport","ENDERMAN_TELEPORT");
     this.cooldown_complete_sound = plugin.getConfig().getString("enchantments."+config_key+".sound.recharge-complete","LEVEL_UP");
     this.cooldown_pending_sound = plugin.getConfig().getString("enchantments."+config_key+".sound.recahrge-pending","ANVIL_LAND");
     
     // Testing the expressions:
-    SamEnchantments.debugLog("Testing expression: '" + this.max_distance_exp + "'");
     ScriptEngine eng = SamEnchantments.getJavaScriptEngine();
-    String var_exp1 = max_distance_exp.replace("b", ""+1).replace("l", ""+1);
+    
+    SamEnchantments.debugLog("Testing expression: '" + this.power_exp + "'");
+    String var_exp1 = power_exp.replace("b", ""+1).replace("l", ""+1);
     try{eng.eval(var_exp1);}
     catch (ScriptException e1)
     {
-      SamEnchantments.log("Expression: '" + this.max_distance_exp + "' under key '" + config_key + "' did not parse correctly");
-      this.max_distance_exp = "5 * L";
-      return;
-    }
-    
-    SamEnchantments.debugLog("Testing expression: '" + this.min_distance_exp + "'");
-    String var_exp2 = max_distance_exp.replace("b", ""+1).replace("l", ""+1);
-    try{eng.eval(var_exp2);}
-    catch (ScriptException e1)
-    {
-      SamEnchantments.log("Expression: '" + this.min_distance_exp + "' under key '" + config_key + "' did not parse correctly");
-      this.min_distance_exp = "5 * L";
+      SamEnchantments.log("Expression: '" + this.power_exp + "' under key '" + config_key + "' did not parse correctly");
+      this.power_exp = "4 * L";
       return;
     }
     
@@ -101,7 +84,8 @@ public class EnchantmentShadowStep extends LoreEnchantment implements OnPlayerIn
 
   @SuppressWarnings("deprecation")
   @Override
-  public void onPlayerInteract(PlayerInteractEvent event, LoreEnchantment ench, String[] data)
+  public void onPlayerInteract(PlayerInteractEvent event, LoreEnchantment ench,
+      String[] data)
   {
     if(!ActionType.getActionType(event).equals(action_type)) return;
     
@@ -130,37 +114,20 @@ public class EnchantmentShadowStep extends LoreEnchantment implements OnPlayerIn
 
     ScriptEngine eng = SamEnchantments.getJavaScriptEngine();
     // Getting the max distance
-    double max_distance = 0;
+    double explosion_power = 0;
     try
     {
-      String var_exp = this.max_distance_exp.replace("l", ""+ench_level);
+      String var_exp = this.power_exp.replace("l", ""+ench_level);
       
       Object ret = eng.eval(var_exp);
       
       double value = 0; 
       if(ret instanceof Integer) value = ((Integer)ret).intValue();
       else if(ret instanceof Double) value = ((Double)ret).doubleValue();
-      max_distance = value;
+      explosion_power = value;
     }
-    catch (ScriptException e){max_distance = 0;}
-    SamEnchantments.debugLog("Enchantment Shadow Step found max-distance to be " + max_distance);
-    
-    // Getting the min distance
-    double min_distance = 0;
-    try
-    {
-      String var_exp = this.min_distance_exp.replace("l", ""+ench_level);
-      
-      Object ret = eng.eval(var_exp);
-      
-      double value = 0; 
-      if(ret instanceof Integer) value = ((Integer)ret).intValue();
-      else if(ret instanceof Double) value = ((Double)ret).doubleValue();
-      min_distance = value;
-    }
-    catch (ScriptException e){min_distance = 0;}
-    SamEnchantments.debugLog("Enchantment Shadow Step found min-distance to be " + min_distance);
-    if(min_distance >= max_distance) return;
+    catch (ScriptException e){explosion_power = 0;}
+    SamEnchantments.debugLog("Enchantment Explode found explosive power to be " + explosion_power);
     
     // Getting recharge time 
     double recharge_time = 0;
@@ -176,46 +143,12 @@ public class EnchantmentShadowStep extends LoreEnchantment implements OnPlayerIn
       recharge_time = value;
     }
     catch (ScriptException e){recharge_time = 0;}
-    SamEnchantments.debugLog("Enchantment Shadow Step found recharge time to be " + recharge_time);
+    SamEnchantments.debugLog("Enchantment Explode found recharge time to be " + recharge_time);
     
-    // Start enchantment math
+    // Do specific enchantment stuff here"
     Player player = event.getPlayer();
-    LivingEntity entity = EntityUtil.getLookedAtEntity(player, ench_level * max_distance, 1);
-    if(entity == null) 
-    { 
-      SamEnchantments.debugLog("No target entity found, returning.");
-      return;
-    }
-    
-    Vector e_dir = entity.getLocation().getDirection().multiply(-1);
-    double x_y_dist = Math.sqrt(Math.pow(e_dir.getX(), 2) + Math.pow(e_dir.getZ(), 2));
-    
-    double step_x = entity.getLocation().getX() + e_dir.getX() * behind_distance / x_y_dist;
-    double step_y = entity.getLocation().getY();
-    double step_z = entity.getLocation().getZ() + e_dir.getZ() * behind_distance / x_y_dist;
-    
-    double step_h_x = entity.getEyeLocation().getX() + e_dir.getX() * behind_distance / x_y_dist;
-    double step_h_y = entity.getEyeLocation().getY();
-    double step_h_z = entity.getEyeLocation().getZ() + e_dir.getZ() * behind_distance / x_y_dist;
-    
-    Location step_loc = new Location(entity.getWorld(), step_x, step_y, step_z);
-    Location step_h_loc = new Location(entity.getWorld(), step_h_x, step_h_y, step_h_z);
-    step_loc.setDirection(entity.getLocation().getDirection());
-    
-    // Tests to ensure you can actually go there.
-    if(step_h_loc.getBlock().getType().isSolid()) 
-    {
-      SamEnchantments.debugLog("Teleport to head block is not air, returning.");
-      return; // No teleport if head is not there
-    }
-    
-    Sound teleport_sound = Sound.valueOf(this.teleport_sound);
-    if(teleport_sound != null) player.getWorld().playSound(player.getLocation(), teleport_sound, 1.0F, 1.0F);
-    
-    EffectUtil.displayDustCylinderCloud(player.getEyeLocation(), 0, 0, 0, 100, 1, 2);
-    player.teleport(step_loc);
-    if(teleport_sound != null) player.getWorld().playSound(player.getLocation(), teleport_sound, 1.0F, 1.0F);
-    EffectUtil.displayDustCylinderCloud(player.getEyeLocation(), 0, 0, 0, 100, 1, 2);
+    Location loc = player.getLocation();
+    player.getWorld().createExplosion(loc.getX(), loc.getY(), loc.getZ(), (float) explosion_power, this.set_fire, this.destroy_blocks);
     
     // Setting up recharge time.
     this.setRecharging(event.getItem(), (int)Math.floor(recharge_time * 20), this.show_on_durability, 20);

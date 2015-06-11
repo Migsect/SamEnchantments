@@ -11,6 +11,7 @@ import net.samongi.LoreEnchantments.EventHandling.LoreEnchantment;
 import net.samongi.LoreEnchantments.Interfaces.OnEntityDamageEntity;
 import net.samongi.LoreEnchantments.Util.StringUtil;
 import net.samongi.SamEnchantments.SamEnchantments;
+import net.samongi.SamongiLib.Effects.EffectUtil;
 
 public class EnchantmentFlourish extends LoreEnchantment implements OnEntityDamageEntity
 {
@@ -47,6 +48,7 @@ public class EnchantmentFlourish extends LoreEnchantment implements OnEntityDama
     if(!(event.getDamager() instanceof LivingEntity)) return;
     if(!(event.getEntity() instanceof LivingEntity)) return;
     LivingEntity damager = (LivingEntity)event.getDamager();
+    LivingEntity entity = (LivingEntity)event.getEntity();
     
     // Extracting the needed information from the data
     if(data.length < 1) return;
@@ -80,6 +82,7 @@ public class EnchantmentFlourish extends LoreEnchantment implements OnEntityDama
     catch (ScriptException e){new_damage = 0;}
     // Actually doing something.
     if(new_damage < base_damage) new_damage = base_damage;
+    if(new_damage >= base_damage) EffectUtil.displayDustSphereCloud(entity.getEyeLocation(), 255, 215, 0,  (int) (30*new_damage/base_damage), 1.5);
     SamEnchantments.debugLog("Flourish Enchantment set damage: " + new_damage);
     event.setDamage(new_damage);
     

@@ -11,6 +11,7 @@ import net.samongi.LoreEnchantments.EventHandling.LoreEnchantment;
 import net.samongi.LoreEnchantments.Interfaces.OnEntityDamageEntity;
 import net.samongi.LoreEnchantments.Util.StringUtil;
 import net.samongi.SamEnchantments.SamEnchantments;
+import net.samongi.SamongiLib.Effects.EffectUtil;
 
 public class EnchantmentFireCritical extends LoreEnchantment implements OnEntityDamageEntity
 {
@@ -61,7 +62,7 @@ public class EnchantmentFireCritical extends LoreEnchantment implements OnEntity
     
     if(entity.getFireTicks() <= 0) return;
     
-    SamEnchantments.debugLog("Enchantment Assassination base damage: " + event.getDamage());
+    SamEnchantments.debugLog("Enchantment Fire Critical base damage: " + event.getDamage());
     double base_damage = event.getDamage();
     double fire_ticks = entity.getFireTicks();
     
@@ -81,6 +82,7 @@ public class EnchantmentFireCritical extends LoreEnchantment implements OnEntity
     catch (ScriptException e){new_damage = 0;}
     // Actually doing something.
     if(new_damage < base_damage) new_damage = base_damage;
+    if(new_damage > base_damage) EffectUtil.displayFireSphereCloud(entity.getEyeLocation(), 100, 1.5);
     SamEnchantments.debugLog("Enchantment Fire Critical set damage: " + new_damage);
     event.setDamage(new_damage);
   }

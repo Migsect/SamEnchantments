@@ -1,10 +1,21 @@
 package net.samongi.SamEnchantments.Abilities;
 
 import java.util.HashSet;
+import java.util.List;
+import java.util.Random;
 import java.util.Set;
 
 import javax.script.ScriptEngine;
 import javax.script.ScriptException;
+
+import net.samongi.LoreEnchantments.EventHandling.LoreEnchantment;
+import net.samongi.LoreEnchantments.Interfaces.OnPlayerInteract;
+import net.samongi.LoreEnchantments.Util.EntityUtil;
+import net.samongi.LoreEnchantments.Util.Recharging;
+import net.samongi.LoreEnchantments.Util.StringUtil;
+import net.samongi.LoreEnchantments.Util.ActionUtil.ActionType;
+import net.samongi.SamEnchantments.SamEnchantments;
+import net.samongi.SamongiLib.Effects.EffectUtil;
 
 import org.bukkit.Location;
 import org.bukkit.Sound;
@@ -15,17 +26,8 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.util.Vector;
 
-import net.samongi.LoreEnchantments.EventHandling.LoreEnchantment;
-import net.samongi.LoreEnchantments.Interfaces.OnPlayerInteract;
-import net.samongi.LoreEnchantments.Util.ActionUtil.ActionType;
-import net.samongi.LoreEnchantments.Util.EntityUtil;
-import net.samongi.LoreEnchantments.Util.Recharging;
-import net.samongi.LoreEnchantments.Util.StringUtil;
-import net.samongi.SamEnchantments.SamEnchantments;
-import net.samongi.SamongiLib.Effects.EffectUtil;
-
-public class EnchantmentShadowStep extends LoreEnchantment implements OnPlayerInteract, Recharging
-{ 
+public class EnchantmentShadowDance extends LoreEnchantment implements OnPlayerInteract, Recharging
+{
   private int max_level;
   
   private String max_distance_exp;
@@ -44,7 +46,7 @@ public class EnchantmentShadowStep extends LoreEnchantment implements OnPlayerIn
   private Set<ItemStack> recharging_items = new HashSet<>();
   private Set<RechargeLater> recharge_tasks = new HashSet<>();
   
-  public EnchantmentShadowStep(JavaPlugin plugin, String name, String config_key)
+  public EnchantmentShadowDance(JavaPlugin plugin, String name, String config_key)
   {
     super(name, plugin);
     
@@ -98,7 +100,7 @@ public class EnchantmentShadowStep extends LoreEnchantment implements OnPlayerIn
       return;
     }
   }
-
+  
   @SuppressWarnings("deprecation")
   @Override
   public void onPlayerInteract(PlayerInteractEvent event, LoreEnchantment ench, String[] data)
@@ -143,7 +145,7 @@ public class EnchantmentShadowStep extends LoreEnchantment implements OnPlayerIn
       max_distance = value;
     }
     catch (ScriptException e){max_distance = 0;}
-    SamEnchantments.debugLog("Enchantment Shadow Step found max-distance to be " + max_distance);
+    SamEnchantments.debugLog("Enchantment Shadow Dance found max-distance to be " + max_distance);
     
     // Getting the min distance
     double min_distance = 0;
@@ -159,7 +161,7 @@ public class EnchantmentShadowStep extends LoreEnchantment implements OnPlayerIn
       min_distance = value;
     }
     catch (ScriptException e){min_distance = 0;}
-    SamEnchantments.debugLog("Enchantment Shadow Step found min-distance to be " + min_distance);
+    SamEnchantments.debugLog("Enchantment Shadow Dance found min-distance to be " + min_distance);
     if(min_distance >= max_distance) return;
     
     // Getting recharge time 
@@ -176,17 +178,17 @@ public class EnchantmentShadowStep extends LoreEnchantment implements OnPlayerIn
       recharge_time = value;
     }
     catch (ScriptException e){recharge_time = 0;}
-    SamEnchantments.debugLog("Enchantment Shadow Step found recharge time to be " + recharge_time);
+    SamEnchantments.debugLog("Enchantment Shadow Dance found recharge time to be " + recharge_time);
     
     // Start enchantment math
     Player player = event.getPlayer();
-    LivingEntity entity = EntityUtil.getLookedAtEntity(player, ench_level * max_distance, 1);
-    if(entity == null) 
+    List<LivingEntity> entities = EntityUtil.getNearbyLivingEntities(player, min_distance, max_distance);
+    if(entities.size() == 0) 
     { 
-      SamEnchantments.debugLog("No target entity found, returning.");
+      SamEnchantments.debugLog("No target entities found, returning.");
       return;
     }
-    
+    LivingEntity entity = entities.get((new Random()).nextInt(entities.size()));
     Vector e_dir = entity.getLocation().getDirection().multiply(-1);
     double x_y_dist = Math.sqrt(Math.pow(e_dir.getX(), 2) + Math.pow(e_dir.getZ(), 2));
     

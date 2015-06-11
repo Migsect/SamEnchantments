@@ -42,4 +42,81 @@ enchantments:
     max-level: 10
     min-dist-exp: '5'
     max-dist-exp: '5 * L'
-    recharge-exp: '2.5 * L + 2.5'
+    behind-distance: 1
+    recharge-exp: '2.5 * L'
+    recharge-durability: true
+    action-type: RIGHT_CLICK_AIR
+    sound:
+      teleport: ENDERMAN_TELEPORT
+      recharge-complete: LEVEL_UP
+      recharge-pending: ANVIL_LAND
+  shadow-dance:
+    name: Shadow Dance
+    type: SHADOW_DANCE
+    max-level: 10
+    min-dist-exp: '5'
+    max-dist-exp: '5 * L'
+    behind-distance: 1
+    recharge-exp: '2.5 * L'
+    recharge-durability: true
+    action-type: RIGHT_CLICK_AIR
+    sound:
+      teleport: ENDERMAN_TELEPORT
+      recharge-complete: LEVEL_UP
+      recharge-pending: ANVIL_LAND
+  shadow-grip:
+    name: Shadow Grip
+    type: SHADOW_GRIP
+    max-level: 10
+    min-dist-exp: '5'
+    max-dist-exp: '5 * L'
+    front-distance: 1
+    recharge-exp: '2.5 * L'
+    recharge-durability: true
+    action-type: RIGHT_CLICK_AIR
+    sound:
+      teleport: ENDERMAN_TELEPORT
+      recharge-complete: LEVEL_UP
+      recharge-pending: ANVIL_LAND
+  explode:
+    name: Explode
+    type: EXPLODE
+    max-level: 10
+    power-exp: 4 * L
+    recharge-durability: true
+    action-type: RIGHT_CLICK_AIR
+    sound:
+      recharge-complete: LEVEL_UP
+      recharge-pending: ANVIL_LAND
+  explosive:
+    name: Explosive
+    type: EXPLOSIVE
+    max-level: 10
+    power-exp: 4 * L
+  singlarity:
+    name: Singlarity
+    type: SINGLARITY
+    max-level: 10
+    min-dist-exp: '5'
+    max-dist-exp: '5 * L'
+    dispersion: 1
+  wormhole:
+    name: Wormhole
+    type: WORMHOLE
+    max-level: 10
+    min-dist-exp: '5'
+    max-dist-exp: '5 * L'
+    dispersion: 1
+    recharge-exp: '2.5 * L'
+    recharge-durability: true
+    action-type: RIGHT_CLICK_AIR
+    sound:
+      teleport: ENDERMAN_TELEPORT
+      recharge-complete: LEVEL_UP
+      recharge-pending: ANVIL_LAND
+  recharging:
+    name: Recharging
+    type: RECHARGING
+    sound:
+      recharge-complete: LEVEL_UP
+      recharge-pending: ANVIL_LAND

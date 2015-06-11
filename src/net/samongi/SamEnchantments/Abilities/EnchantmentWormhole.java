@@ -1,10 +1,21 @@
 package net.samongi.SamEnchantments.Abilities;
 
 import java.util.HashSet;
+import java.util.List;
+import java.util.Random;
 import java.util.Set;
 
 import javax.script.ScriptEngine;
 import javax.script.ScriptException;
+
+import net.samongi.LoreEnchantments.EventHandling.LoreEnchantment;
+import net.samongi.LoreEnchantments.Interfaces.OnPlayerInteract;
+import net.samongi.LoreEnchantments.Util.EntityUtil;
+import net.samongi.LoreEnchantments.Util.Recharging;
+import net.samongi.LoreEnchantments.Util.StringUtil;
+import net.samongi.LoreEnchantments.Util.ActionUtil.ActionType;
+import net.samongi.SamEnchantments.SamEnchantments;
+import net.samongi.SamongiLib.Effects.EffectUtil;
 
 import org.bukkit.Location;
 import org.bukkit.Sound;
@@ -13,24 +24,14 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.java.JavaPlugin;
-import org.bukkit.util.Vector;
 
-import net.samongi.LoreEnchantments.EventHandling.LoreEnchantment;
-import net.samongi.LoreEnchantments.Interfaces.OnPlayerInteract;
-import net.samongi.LoreEnchantments.Util.ActionUtil.ActionType;
-import net.samongi.LoreEnchantments.Util.EntityUtil;
-import net.samongi.LoreEnchantments.Util.Recharging;
-import net.samongi.LoreEnchantments.Util.StringUtil;
-import net.samongi.SamEnchantments.SamEnchantments;
-import net.samongi.SamongiLib.Effects.EffectUtil;
-
-public class EnchantmentShadowStep extends LoreEnchantment implements OnPlayerInteract, Recharging
-{ 
-  private int max_level;
+public class EnchantmentWormhole extends LoreEnchantment implements OnPlayerInteract, Recharging
+{
+private int max_level;
   
   private String max_distance_exp;
   private String min_distance_exp;
-  private double behind_distance;
+  private double dispersion;
   
   private String recharge_exp;
   private boolean show_on_durability;
@@ -44,7 +45,7 @@ public class EnchantmentShadowStep extends LoreEnchantment implements OnPlayerIn
   private Set<ItemStack> recharging_items = new HashSet<>();
   private Set<RechargeLater> recharge_tasks = new HashSet<>();
   
-  public EnchantmentShadowStep(JavaPlugin plugin, String name, String config_key)
+  public EnchantmentWormhole(JavaPlugin plugin, String name, String config_key)
   {
     super(name, plugin);
     
@@ -54,7 +55,7 @@ public class EnchantmentShadowStep extends LoreEnchantment implements OnPlayerIn
     this.max_distance_exp = this.max_distance_exp.toLowerCase().replace("pow", "Math.pow");
     this.min_distance_exp = plugin.getConfig().getString("enchantments."+config_key+".min-dist-exp","5");
     this.min_distance_exp = this.min_distance_exp.toLowerCase().replace("pow", "Math.pow");
-    this.behind_distance = plugin.getConfig().getDouble("enchantments." + config_key + ".behind-distance", 1);
+    this.dispersion = plugin.getConfig().getDouble("enchantments." + config_key + ".dispersion", 1);
     
     this.recharge_exp = plugin.getConfig().getString("enchantments."+config_key+".recharge-exp","2.5 * L + 2.5");
     this.recharge_exp = this.recharge_exp.toLowerCase().replace("pow", "Math.pow");
@@ -98,7 +99,7 @@ public class EnchantmentShadowStep extends LoreEnchantment implements OnPlayerIn
       return;
     }
   }
-
+  
   @SuppressWarnings("deprecation")
   @Override
   public void onPlayerInteract(PlayerInteractEvent event, LoreEnchantment ench, String[] data)
@@ -143,7 +144,7 @@ public class EnchantmentShadowStep extends LoreEnchantment implements OnPlayerIn
       max_distance = value;
     }
     catch (ScriptException e){max_distance = 0;}
-    SamEnchantments.debugLog("Enchantment Shadow Step found max-distance to be " + max_distance);
+    SamEnchantments.debugLog("Enchantment Shadow Dance found max-distance to be " + max_distance);
     
     // Getting the min distance
     double min_distance = 0;
@@ -159,7 +160,7 @@ public class EnchantmentShadowStep extends LoreEnchantment implements OnPlayerIn
       min_distance = value;
     }
     catch (ScriptException e){min_distance = 0;}
-    SamEnchantments.debugLog("Enchantment Shadow Step found min-distance to be " + min_distance);
+    SamEnchantments.debugLog("Enchantment Shadow Dance found min-distance to be " + min_distance);
     if(min_distance >= max_distance) return;
     
     // Getting recharge time 
@@ -176,47 +177,40 @@ public class EnchantmentShadowStep extends LoreEnchantment implements OnPlayerIn
       recharge_time = value;
     }
     catch (ScriptException e){recharge_time = 0;}
-    SamEnchantments.debugLog("Enchantment Shadow Step found recharge time to be " + recharge_time);
+    SamEnchantments.debugLog("Enchantment Shadow Dance found recharge time to be " + recharge_time);
     
     // Start enchantment math
     Player player = event.getPlayer();
-    LivingEntity entity = EntityUtil.getLookedAtEntity(player, ench_level * max_distance, 1);
-    if(entity == null) 
+    List<LivingEntity> entities = EntityUtil.getNearbyLivingEntities(player, min_distance, max_distance);
+    if(entities.size() == 0) 
     { 
-      SamEnchantments.debugLog("No target entity found, returning.");
+      SamEnchantments.debugLog("No target entities found, returning.");
       return;
     }
     
-    Vector e_dir = entity.getLocation().getDirection().multiply(-1);
-    double x_y_dist = Math.sqrt(Math.pow(e_dir.getX(), 2) + Math.pow(e_dir.getZ(), 2));
-    
-    double step_x = entity.getLocation().getX() + e_dir.getX() * behind_distance / x_y_dist;
-    double step_y = entity.getLocation().getY();
-    double step_z = entity.getLocation().getZ() + e_dir.getZ() * behind_distance / x_y_dist;
-    
-    double step_h_x = entity.getEyeLocation().getX() + e_dir.getX() * behind_distance / x_y_dist;
-    double step_h_y = entity.getEyeLocation().getY();
-    double step_h_z = entity.getEyeLocation().getZ() + e_dir.getZ() * behind_distance / x_y_dist;
-    
-    Location step_loc = new Location(entity.getWorld(), step_x, step_y, step_z);
-    Location step_h_loc = new Location(entity.getWorld(), step_h_x, step_h_y, step_h_z);
-    step_loc.setDirection(entity.getLocation().getDirection());
-    
-    // Tests to ensure you can actually go there.
-    if(step_h_loc.getBlock().getType().isSolid()) 
+    Location loc = player.getLocation();
+    Random rand = new Random();
+    for(LivingEntity e : entities)
     {
-      SamEnchantments.debugLog("Teleport to head block is not air, returning.");
-      return; // No teleport if head is not there
+      Location l = null;
+
+      while(l == null || l.getBlock().getType().isSolid())
+      {
+        double x_off = this.dispersion * rand.nextDouble();
+        double z_off = this.dispersion * rand.nextDouble();
+        l = new Location(loc.getWorld(), loc.getX() + x_off, loc.getY(), loc.getZ() + z_off);
+        l.setDirection(e.getLocation().getDirection());
+      }
+      Sound teleport_sound = Sound.valueOf(this.teleport_sound);
+      if(teleport_sound != null) e.getWorld().playSound(e.getLocation(), teleport_sound, 1.0F, 1.0F);
+      
+      EffectUtil.displayDustCylinderCloud(e.getEyeLocation(), 0, 0, 0, 100, 1, 2);
+      e.teleport(l);
+      if(teleport_sound != null) e.getWorld().playSound(e.getLocation(), teleport_sound, 1.0F, 1.0F);
+      EffectUtil.displayDustCylinderCloud(e.getEyeLocation(), 0, 0, 0, 100, 1, 2);
+
     }
-    
-    Sound teleport_sound = Sound.valueOf(this.teleport_sound);
-    if(teleport_sound != null) player.getWorld().playSound(player.getLocation(), teleport_sound, 1.0F, 1.0F);
-    
-    EffectUtil.displayDustCylinderCloud(player.getEyeLocation(), 0, 0, 0, 100, 1, 2);
-    player.teleport(step_loc);
-    if(teleport_sound != null) player.getWorld().playSound(player.getLocation(), teleport_sound, 1.0F, 1.0F);
-    EffectUtil.displayDustCylinderCloud(player.getEyeLocation(), 0, 0, 0, 100, 1, 2);
-    
+  
     // Setting up recharge time.
     this.setRecharging(event.getItem(), (int)Math.floor(recharge_time * 20), this.show_on_durability, 20);
   }
@@ -239,5 +233,4 @@ public class EnchantmentShadowStep extends LoreEnchantment implements OnPlayerIn
     else player.playSound(player.getLocation(), this.cooldown_complete_sound, .1F, .5F);
     player.playSound(player.getLocation(), Sound.LEVEL_UP, 1.0F, 2);
   }
-
 }
