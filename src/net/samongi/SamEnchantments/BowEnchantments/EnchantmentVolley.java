@@ -66,6 +66,7 @@ public class EnchantmentVolley extends LoreEnchantment implements OnEntityShootB
     
     ItemStack bow = event.getBow();
     
+    if(event.isCancelled()) return;
     // Extracting the needed information from the data
     if(data.length < 1) return;
     String power = data[0];

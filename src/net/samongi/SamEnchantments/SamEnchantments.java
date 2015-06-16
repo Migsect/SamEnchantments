@@ -13,20 +13,26 @@ import net.samongi.LoreEnchantments.LoreEnchantmentsAPI;
 import net.samongi.LoreEnchantments.LoreEnchantments;
 import net.samongi.LoreEnchantments.EventHandling.LoreEnchantment;
 import net.samongi.SamEnchantments.Abilities.EnchantmentExplode;
+import net.samongi.SamEnchantments.Abilities.EnchantmentLeap;
 import net.samongi.SamEnchantments.Abilities.EnchantmentShadowDance;
 import net.samongi.SamEnchantments.Abilities.EnchantmentShadowGrip;
 import net.samongi.SamEnchantments.Abilities.EnchantmentShadowStep;
 import net.samongi.SamEnchantments.Abilities.EnchantmentWormhole;
 import net.samongi.SamEnchantments.BowEnchantments.EnchantmentCelerity;
+import net.samongi.SamEnchantments.BowEnchantments.EnchantmentDistanceShot;
 import net.samongi.SamEnchantments.BowEnchantments.EnchantmentExplosive;
 import net.samongi.SamEnchantments.BowEnchantments.EnchantmentSinglarity;
 import net.samongi.SamEnchantments.BowEnchantments.EnchantmentVolley;
+import net.samongi.SamEnchantments.ItemEnchantments.EnchantmentBottomless;
+import net.samongi.SamEnchantments.ItemEnchantments.EnchantmentImmovable;
+import net.samongi.SamEnchantments.ItemEnchantments.EnchantmentUndroppable;
 import net.samongi.SamEnchantments.PotionEnchantments.EnchantmentCoated;
 import net.samongi.SamEnchantments.PotionEnchantments.EnchantmentTipped;
 import net.samongi.SamEnchantments.ResourceEnchantments.EnchantmentRecharging;
 import net.samongi.SamEnchantments.WeaponEnchantments.EnchantmentAssassination;
 import net.samongi.SamEnchantments.WeaponEnchantments.EnchantmentFireCritical;
 import net.samongi.SamEnchantments.WeaponEnchantments.EnchantmentFlourish;
+import net.samongi.SamEnchantments.WeaponEnchantments.EnchantmentKnockUp;
 
 import org.bukkit.plugin.java.JavaPlugin;
 
@@ -100,6 +106,12 @@ public class SamEnchantments extends JavaPlugin
         case "EXPLODE":         new_ench = new EnchantmentExplode(this, name, k); break;
         case "EXPLOSIVE":       new_ench = new EnchantmentExplosive(this, name, k); break;
         case "RECHARGING":      new_ench = new EnchantmentRecharging(this, name, k); break;
+        case "IMMOVABLE":       new_ench = new EnchantmentImmovable(this, name, k); break;
+        case "UNDROPPABLE":     new_ench = new EnchantmentUndroppable(this, name, k); break;
+        case "BOTTOMLESS":      new_ench = new EnchantmentBottomless(this, name, k); break;
+        case "DISTANCE_SHOT":   new_ench = new EnchantmentDistanceShot(this, name, k); break;
+        case "KNOCK_UP":        new_ench = new EnchantmentKnockUp(this, name, k); break;
+        case "LEAP":            new_ench = new EnchantmentLeap(this, name, k); break;
         default: continue;
       }
       api.registerEnchantment(new_ench, this);

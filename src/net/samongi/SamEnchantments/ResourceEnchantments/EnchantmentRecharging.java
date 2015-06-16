@@ -6,7 +6,11 @@ import java.util.Map;
 import java.util.Set;
 
 import net.samongi.LoreEnchantments.EventHandling.LoreEnchantment;
+import net.samongi.LoreEnchantments.Interfaces.OnBlockBreak;
+import net.samongi.LoreEnchantments.Interfaces.OnEntityDamageEntity;
+import net.samongi.LoreEnchantments.Interfaces.OnEntityShootBow;
 import net.samongi.LoreEnchantments.Interfaces.OnPlayerInteract;
+import net.samongi.LoreEnchantments.Interfaces.OnPlayerItemConsume;
 import net.samongi.LoreEnchantments.Util.ActionUtil.ActionType;
 import net.samongi.LoreEnchantments.Util.EntityUtil;
 import net.samongi.LoreEnchantments.Util.StringUtil;
@@ -20,15 +24,24 @@ import org.bukkit.Sound;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
 import org.bukkit.event.Cancellable;
+import org.bukkit.event.block.BlockBreakEvent;
+import org.bukkit.event.entity.EntityDamageByEntityEvent;
+import org.bukkit.event.entity.EntityShootBowEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
+import org.bukkit.event.player.PlayerItemConsumeEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.scheduler.BukkitRunnable;
 
-public class EnchantmentRecharging extends LoreEnchantment implements OnPlayerInteract
+public class EnchantmentRecharging extends LoreEnchantment implements OnPlayerInteract, OnEntityShootBow, OnEntityDamageEntity, OnPlayerItemConsume, OnBlockBreak
 {
   private String cooldown_complete_sound;
   private String cooldown_pending_sound;
+  
+  private boolean do_amount_show = false;
+  private boolean do_durability_show = false;
+  
+  private int visual_tick = 20;
   
   // Player -> ActionType -> ItemStack -> Recharge
   private Map<String, Map<String, Map<ComparableItemStack, Recharge>>> recharging_tasks = new HashMap<>();
@@ -39,6 +52,10 @@ public class EnchantmentRecharging extends LoreEnchantment implements OnPlayerIn
 
     this.cooldown_complete_sound = plugin.getConfig().getString("enchantments."+config_key+".sound.recharge-complete","LEVEL_UP");
     this.cooldown_pending_sound = plugin.getConfig().getString("enchantments."+config_key+".sound.recahrge-pending","ANVIL_LAND");
+    
+    this.do_amount_show = plugin.getConfig().getBoolean("enchantments."+config_key+".show.amount", false);
+    this.do_durability_show = plugin.getConfig().getBoolean("enchantments."+config_key+".show.durability", false);
+    this.visual_tick = plugin.getConfig().getInt("enchantments."+config_key+".show.tick", 20);
     
   }
   
@@ -148,9 +165,10 @@ public class EnchantmentRecharging extends LoreEnchantment implements OnPlayerIn
     }
     private void startUpdater()
     {
-      if(!this.visual_amount_recharge && !this.visual_durability_recharge) return;
+      if(!this.isVisualAmount() && !this.isVisualDurability()) return;
+      SamEnchantments.debugLog("Starting Recharge Updater: visual_tick: " + this.visual_tick + ", do_durability: " + this.visual_durability_recharge + ", do_amount: " + this.visual_amount_recharge);
       this.updater = new RechargeUpdater(this);
-      this.updater.runTaskLater(this.source.getOwningPlugin(), this.visual_tick);
+      this.updater.runTaskTimer(this.source.getOwningPlugin(), 0, this.visual_tick);
     }
     public void finish()
     {
@@ -189,7 +207,6 @@ public class EnchantmentRecharging extends LoreEnchantment implements OnPlayerIn
     {
       if(recharge.isVisualDurability()) updateDurability();
       if(recharge.isVisualAmount()) updateAmount();
-      
     }
     private final void updateDurability()
     {
@@ -199,7 +216,7 @@ public class EnchantmentRecharging extends LoreEnchantment implements OnPlayerIn
       short max_durability = item.getType().getMaxDurability();
       short new_durability = (short) (max_durability * filled_ratio);
       
-      if(new_durability <= 1) new_durability = 2;
+      if(new_durability >= max_durability - 1) new_durability = (short) (max_durability - 2);
       item.setDurability(new_durability);
     }
     private final void updateAmount()
@@ -207,7 +224,8 @@ public class EnchantmentRecharging extends LoreEnchantment implements OnPlayerIn
       ItemStack item = recharge.getItemStack();
       double filled_ratio = this.recharge.getRemainingTicks() / (double)this.recharge.getTotalTicks();
       
-      int max_amount = item.getMaxStackSize();
+      // int max_amount = item.getMaxStackSize();
+      int max_amount = 100;
       int new_amount = (int) (max_amount * filled_ratio);
       
       if(new_amount <= 1) new_amount = 1;
@@ -217,10 +235,328 @@ public class EnchantmentRecharging extends LoreEnchantment implements OnPlayerIn
     {
       if(recharge.isVisualDurability()) completeDurability();
       if(recharge.isVisualAmount()) completeAmount();
+      this.cancel();
     }
     private final void completeDurability(){this.recharge.getItemStack().setDurability((short) 0);;}
-    private final void completeAmount(){this.recharge.getItemStack().setAmount(1);;}
+    private final void completeAmount(){this.recharge.getItemStack().setAmount(1);}
     
+  }
+  
+  private void route(Player player, String action, ActionType action_type, ItemStack item, Cancellable event, String[] data, int ticks)
+  {
+    /* Entity Clicks
+     * 
+     */
+    if(action.startsWith("right click entity"))
+    {
+      if(!action_type.equals(ActionType.RIGHT_CLICK) &&
+          !action_type.equals(ActionType.RIGHT_CLICK_AIR) &&
+          !action_type.equals(ActionType.RIGHT_CLICK_BLOCK)) return;
+      if(data.length != 5) return;
+      if(!this.checkIfClickedEntity(player, action, data)) return;
+      
+      boolean success = doCancelRecharging(player, action, item, event);
+      if(success) return;
+      doSetRecharging(player, action, item, ticks);
+    }
+    if(action.startsWith("shift right click entity"))
+    {
+      if(!action_type.equals(ActionType.SHIFT_RIGHT_CLICK) &&
+          !action_type.equals(ActionType.SHIFT_RIGHT_CLICK_AIR) &&
+          !action_type.equals(ActionType.SHIFT_RIGHT_CLICK_BLOCK)) return;
+      if(data.length != 6) return;
+      if(!this.checkIfClickedEntity(player, action, data)) return;
+      
+      boolean success = doCancelRecharging(player, action, item, event);
+      if(success) return;
+      doSetRecharging(player, action, item, ticks);
+    }
+    if(action.startsWith("left click entity"))
+    {
+      if(!action_type.equals(ActionType.LEFT_CLICK) &&
+          !action_type.equals(ActionType.LEFT_CLICK_AIR) &&
+          !action_type.equals(ActionType.LEFT_CLICK_BLOCK)) return;
+      if(data.length != 5) return;
+      if(!this.checkIfClickedEntity(player, action, data)) return;
+      
+      boolean success = doCancelRecharging(player, action, item, event);
+      if(success) return;
+      doSetRecharging(player, action, item, ticks);
+    }
+    if(action.startsWith("shift left click entity"))
+    {
+      if(!action_type.equals(ActionType.SHIFT_LEFT_CLICK) &&
+          !action_type.equals(ActionType.SHIFT_LEFT_CLICK_AIR) &&
+          !action_type.equals(ActionType.SHIFT_LEFT_CLICK_BLOCK)) return;
+      if(data.length != 6) return;
+      if(!this.checkIfClickedEntity(player, action, data)) return;
+      
+      boolean success = doCancelRecharging(player, action, item, event);
+      if(success) return;
+      doSetRecharging(player, action, item, ticks);
+    }
+    /* Air Clicks
+     * 
+     */
+    if(action.startsWith("right click air"))
+    {
+      if(!action_type.equals(ActionType.RIGHT_CLICK_AIR)) return;
+      if(data.length != 4) return;
+      
+      boolean success = doCancelRecharging(player, action, item, event);
+      if(success) return;
+      doSetRecharging(player, action, item, ticks);
+    }
+    if(action.startsWith("shift right click air"))
+    {
+      if(!action_type.equals(ActionType.SHIFT_RIGHT_CLICK_AIR)) return;
+      if(data.length != 5) return;
+      
+      boolean success = doCancelRecharging(player, action, item, event);
+      if(success) return;
+      doSetRecharging(player, action, item, ticks);
+    }
+    if(action.startsWith("left click air"))
+    {
+      if(!action_type.equals(ActionType.LEFT_CLICK_AIR)) return;
+      if(data.length != 4) return;
+      
+      boolean success = doCancelRecharging(player, action, item, event);
+      if(success) return;
+      doSetRecharging(player, action, item, ticks);
+    }
+    if(action.startsWith("shift left click air"))
+    {
+      if(!action_type.equals(ActionType.SHIFT_LEFT_CLICK_AIR)) return;
+      if(data.length != 5) return;
+      
+      boolean success = doCancelRecharging(player, action, item, event);
+      if(success) return;
+      doSetRecharging(player, action, item, ticks);
+    }
+    /* Block Clicks
+     * 
+     */
+    if(action.startsWith("right click block"))
+    {
+      if(!action_type.equals(ActionType.RIGHT_CLICK_BLOCK)) return;
+      if(data.length != 4) return;
+      
+      boolean success = doCancelRecharging(player, action, item, event);
+      if(success) return;
+      doSetRecharging(player, action, item, ticks);
+    }
+    if(action.startsWith("shift right click block"))
+    {
+      if(!action_type.equals(ActionType.SHIFT_RIGHT_CLICK_BLOCK)) return;
+      if(data.length != 5) return;
+      
+      boolean success = doCancelRecharging(player, action, item, event);
+      if(success) return;
+      doSetRecharging(player, action, item, ticks);
+    }
+    if(action.startsWith("left click block"))
+    {
+      if(!action_type.equals(ActionType.LEFT_CLICK_BLOCK)) return;
+      if(data.length != 4) return;
+      
+      boolean success = doCancelRecharging(player, action, item, event);
+      if(success) return;
+      doSetRecharging(player, action, item, ticks);
+    }
+    if(action.startsWith("shift left click block"))
+    {
+      if(!action_type.equals(ActionType.SHIFT_LEFT_CLICK_BLOCK)) return;
+      if(data.length != 5) return;
+      
+      boolean success = doCancelRecharging(player, action, item, event);
+      if(success) return;
+      doSetRecharging(player, action, item, ticks);
+    }
+    /* Basic Clicks
+     * 
+     */
+    if(action.startsWith("right click"))
+    {
+      if(!action_type.equals(ActionType.RIGHT_CLICK) &&
+          !action_type.equals(ActionType.RIGHT_CLICK_AIR) &&
+          !action_type.equals(ActionType.RIGHT_CLICK_BLOCK)) return;
+      if(data.length != 3) return;
+      
+      boolean success = doCancelRecharging(player, action, item, event);
+      if(success) return;
+      doSetRecharging(player, action, item, ticks);
+    }
+    if(action.startsWith("shift right click"))
+    {
+      if(!action_type.equals(ActionType.SHIFT_RIGHT_CLICK) &&
+          !action_type.equals(ActionType.SHIFT_RIGHT_CLICK_AIR) &&
+          !action_type.equals(ActionType.SHIFT_RIGHT_CLICK_BLOCK)) return;
+      if(data.length != 4) return;
+      
+      boolean success = doCancelRecharging(player, action, item, event);
+      if(success) return;
+      doSetRecharging(player, action, item, ticks);
+    }
+    if(action.startsWith("left click"))
+    {
+      if(!action_type.equals(ActionType.LEFT_CLICK) &&
+          !action_type.equals(ActionType.LEFT_CLICK_AIR) &&
+          !action_type.equals(ActionType.LEFT_CLICK_BLOCK)) return;
+      if(data.length != 3) return;
+      
+      boolean success = doCancelRecharging(player, action, item, event);
+      if(success) return;
+      doSetRecharging(player, action, item, ticks);
+    }
+    if(action.startsWith("shift left click"))
+    {
+      if(!action_type.equals(ActionType.SHIFT_LEFT_CLICK) &&
+          !action_type.equals(ActionType.SHIFT_LEFT_CLICK_AIR) &&
+          !action_type.equals(ActionType.SHIFT_LEFT_CLICK_BLOCK)) return;
+      if(data.length != 4) return;
+      
+      boolean success = doCancelRecharging(player, action, item, event);
+      if(success) return;
+      doSetRecharging(player, action, item, ticks);
+    }
+    /* Consume Actions
+     * 
+     */
+    if(action.startsWith("consume"))
+    {
+      if(!action_type.equals(ActionType.CONSUME)) return;
+      if(data.length != 2) return;
+      
+      boolean success = doCancelRecharging(player, action, item, event);
+      if(success) return;
+      doSetRecharging(player, action, item, ticks);
+    }
+    if(action.startsWith("shift consume"))
+    {
+      if(!action_type.equals(ActionType.SHIFT_CONSUME)) return;
+      if(data.length != 3) return;
+      
+      boolean success = doCancelRecharging(player, action, item, event);
+      if(success) return;
+      doSetRecharging(player, action, item, ticks);
+    }
+    /* Attack Actions
+     * 
+     */
+    if(action.startsWith("attack"))
+    {
+      if(!action_type.equals(ActionType.ATTACK)) return;
+      if(data.length != 2) return;
+      
+      boolean success = doCancelRecharging(player, action, item, event);
+      if(success) return;
+      doSetRecharging(player, action, item, ticks);
+    }
+    if(action.startsWith("shift attack"))
+    {
+      if(!action_type.equals(ActionType.SHIFT_ATTACK)) return;
+      if(data.length != 3) return;
+      
+      boolean success = doCancelRecharging(player, action, item, event);
+      if(success) return;
+      doSetRecharging(player, action, item, ticks);
+    }
+    /* Shoot Action
+     * 
+     */
+    if(action.startsWith("shoot bow"))
+    {
+      if(!action_type.equals(ActionType.SHOOT_BOW)) return;
+      if(data.length != 3) return;
+      
+      boolean success = doCancelRecharging(player, action, item, event);
+      if(success) return;
+      doSetRecharging(player, action, item, ticks);
+    }
+    if(action.startsWith("shift shoot bow"))
+    {
+      if(!action_type.equals(ActionType.SHIFT_SHOOT_BOW)) return;
+      if(data.length != 4) return;
+      
+      boolean success = doCancelRecharging(player, action, item, event);
+      if(success) return;
+      doSetRecharging(player, action, item, ticks);
+    }
+    /* Block Break Action
+     * 
+     */
+    if(action.startsWith("block break"))
+    {
+      if(!action_type.equals(ActionType.BLOCK_BREAK)) return;
+      if(data.length != 3) return;
+      
+      boolean success = doCancelRecharging(player, action, item, event);
+      if(success) return;
+      doSetRecharging(player, action, item, ticks);
+    }
+    if(action.startsWith("shift block break"))
+    {
+      if(!action_type.equals(ActionType.SHIFT_BLOCK_BREAK)) return;
+      if(data.length != 4) return;
+      
+      boolean success = doCancelRecharging(player, action, item, event);
+      if(success) return;
+      doSetRecharging(player, action, item, ticks);
+    }
+  }
+  
+  private boolean checkIfClickedEntity(Player player, String action, String[] data)
+  {
+    String distances = data[data.length - 2]; // Second to last is the thing.
+    String[] split_distances = distances.split("-");
+    double max_distance = 0;
+    double min_distance = 0;
+    if(split_distances.length == 1) // Only one distance
+    {
+      try{max_distance = Double.parseDouble(split_distances[0]);}catch(NumberFormatException e){return false;}
+    }
+    if(split_distances.length == 2) // Has two distances (min-max)
+    {
+      try{min_distance = Double.parseDouble(split_distances[0]);}catch(NumberFormatException e){return false;}
+      try{max_distance = Double.parseDouble(split_distances[1]);}catch(NumberFormatException e){return false;}
+    }
+    // Getting the looked at entity
+    LivingEntity entity = EntityUtil.getLookedAtEntity(player, min_distance, max_distance, 1);
+    if(entity == null){return false;} // if the entity isn't anything, return false;
+    return true;
+  }
+  
+  @SuppressWarnings("deprecation")
+  private boolean doCancelRecharging(Player player, String action, ItemStack item, Cancellable event)
+  {
+ // Cancel the event if recharging
+    if(this.isRecharging(player, action, item))
+    {
+      SamEnchantments.debugLog("Enchantment Recharge cancelled event as item was still recharging");
+      SamEnchantments.debugLog("  Info: Player-" + player.getName() + " action-" + action + " itemtype-" +item.getType());
+      Sound cooldown_pending_sound = Sound.valueOf(this.cooldown_pending_sound);
+      if(cooldown_pending_sound != null) player.playSound(player.getLocation(), cooldown_pending_sound, .1F, .5F);
+      else player.playSound(player.getLocation(), this.cooldown_pending_sound, .1F, .5F);
+      event.setCancelled(true);
+      return true;
+    }
+    return false;
+  }
+  private void doSetRecharging(Player player, String action, ItemStack item, int ticks)
+  {
+    SamEnchantments.debugLog("Enchantment Recharge starting recharging");
+    SamEnchantments.debugLog("  Info: Player-" + player.getName() + " action-" + action + " itemtype-" +item.getType());
+    this.printRecharging();
+    
+    // Setting up the recharge
+    Recharge recharge = new Recharge(player, action, item, this, ticks);
+    recharge.setVisualAmount(this.do_amount_show);
+    recharge.setVisualDurability(this.do_durability_show);
+    recharge.setVisualTick(this.visual_tick);
+    this.setItemRecharging(player, action, item, recharge);
+    recharge.start();
+    this.printRecharging();
   }
   
   @Override
@@ -240,95 +576,125 @@ public class EnchantmentRecharging extends LoreEnchantment implements OnPlayerIn
     Player player = event.getPlayer();
     ItemStack item = event.getItem();
     
-    // Clicking Entities check
-    if(action.toLowerCase().startsWith("right click entity") || action.toLowerCase().startsWith("left click entity") || 
-        action.toLowerCase().startsWith("shift right click entity") || action.toLowerCase().startsWith("shift left click entity"))
-    {
-      ActionType type = ActionType.getActionType(event);
-      if(type != ActionType.RIGHT_CLICK_AIR &&
-          type != ActionType.RIGHT_CLICK_AIR_SHIFT &&
-          type != ActionType.LEFT_CLICK_AIR &&
-          type != ActionType.LEFT_CLICK_AIR_SHIFT) return; // Needs to be Right Click Air to work.
-      if(data.length == 5 || (data.length == 6 && action.toLowerCase().startsWith("shift"))) // No distance parameters 
-      {
-        String distances = data[data.length - 2]; // Second to last is the thing.
-        String[] split_distances = distances.split("-");
-        double max_distance = 0;
-        double min_distance = 0;
-        if(split_distances.length == 1) // Only one distance
-        {
-          try{max_distance = Double.parseDouble(split_distances[0]);}catch(NumberFormatException e)
-          {
-            SamEnchantments.debugLog("Enchantment Recharge found '" + action + "' to be invalid.");
-            return; // Invalid enchantment
-          }
-        }
-        if(split_distances.length == 2) // Has two distances (min-max)
-        {
-          try{min_distance = Double.parseDouble(split_distances[0]);}catch(NumberFormatException e)
-          {
-            SamEnchantments.debugLog("Enchantment Recharge found '" + action + "' to be invalid.");
-            return; // Invalid enchantment
-          }
-          try{max_distance = Double.parseDouble(split_distances[1]);}catch(NumberFormatException e)
-          {
-            SamEnchantments.debugLog("Enchantment Recharge found '" + action + "' to be invalid.");
-            return; // Invalid enchantment
-          }
-        }
-        // Getting the looked at entity
-        LivingEntity entity = EntityUtil.getLookedAtEntity(player, min_distance, max_distance, 1);
-        if(entity == null)
-        {
-          SamEnchantments.debugLog("Enchantment Recharge found '" + action + "' to be invalid.");
-          return; // Invalid enchantment
-        }
-      }
-      else
-      {
-        SamEnchantments.debugLog("Enchantment Recharge found '" + action + "' to be invalid.");
-        return; // Invalid enchantment
-      }
-    }
-    // Checking for right-left (shift and shift) cases
-    else if((data.length == 4 && (action.toLowerCase().startsWith("right click") || action.toLowerCase().startsWith("left click"))) || 
-        (data.length == 5 && (action.toLowerCase().startsWith("shift right click") || action.toLowerCase().startsWith("shift left click"))))
-    {
-      
-    }
-    
-    doCancelRecharging(player, action, item, event);
-    
-    doSetRecharging(player, action, item, ticks);
+    // Grabbing the action_type
+    ActionType action_type = ActionType.getActionType(event);
+    SamEnchantments.debugLog("Routing using action: '" + action + "', ActionType: '" + action_type.toString() + "'");
+    this.route(player, action, action_type, item, event, data, ticks);
     
   }
-  @SuppressWarnings("deprecation")
-  private void doCancelRecharging(Player player, String action, ItemStack item, Cancellable event)
+  
+  @Override
+  public void onBlockBreak(BlockBreakEvent event, LoreEnchantment ench, String[] data)
   {
- // Cancel the event if recharging
-    if(this.isRecharging(player, action, item))
-    {
-      SamEnchantments.debugLog("Enchantment Recharge cancelled event as item was still recharging");
-      SamEnchantments.debugLog("  Info: Player-" + player.getName() + " action-" + action + " itemtype-" +item.getType());
-      Sound cooldown_pending_sound = Sound.valueOf(this.cooldown_pending_sound);
-      if(cooldown_pending_sound != null) player.playSound(player.getLocation(), cooldown_pending_sound, .1F, .5F);
-      else player.playSound(player.getLocation(), this.cooldown_pending_sound, .1F, .5F);
-      event.setCancelled(true);
-      return;
-    }
-  }
-  private void doSetRecharging(Player player, String action, ItemStack item, int ticks)
-  {
-    SamEnchantments.debugLog("Enchantment Recharge starting recharging");
-    SamEnchantments.debugLog("  Info: Player-" + player.getName() + " action-" + action + " itemtype-" +item.getType());
-    this.printRecharging();
+    if(data.length < 1) return;
     
-    // Setting up the recharge
-    Recharge recharge = new Recharge(player, action, item, this, ticks);
-    recharge.setVisualAmount(true);
-    recharge.setVisualTick(20);
-    this.setItemRecharging(player, action, item, recharge);
-    recharge.start();
-    this.printRecharging();
+    // Getting the time (should be the last value)
+    int time = StringUtil.getSeconds(data[data.length - 1]);
+    int ticks = time * 20;
+    
+    String action = "";
+    if(data.length > 1) for(String d : data) action += d + " ";
+    if(action.length() == 0) action = "All";
+    action = action.trim();
+    
+    // Getting the Player
+    Player player = event.getPlayer();
+    ItemStack item = player.getItemInHand();
+    
+    // Grabbing the action_type
+    ActionType action_type;
+    if(!player.isSneaking()) action_type = ActionType.BLOCK_BREAK;
+    else action_type = ActionType.SHIFT_BLOCK_BREAK;
+        
+    SamEnchantments.debugLog("Routing using action: '" + action + "', ActionType: '" + action_type.toString() + "'");
+    this.route(player, action, action_type, item, event, data, ticks);
+  }
+
+  @Override
+  public void onPlayerItemConsume(PlayerItemConsumeEvent event,LoreEnchantment ench, String[] data)
+  {
+    if(data.length < 1) return;
+    
+    // Getting the time (should be the last value)
+    int time = StringUtil.getSeconds(data[data.length - 1]);
+    int ticks = time * 20;
+    
+    String action = "";
+    if(data.length > 1) for(String d : data) action += d + " ";
+    if(action.length() == 0) action = "All";
+    action = action.trim();
+    
+    // Getting the Player
+    Player player = event.getPlayer();
+    ItemStack item = event.getItem();
+    
+    // Grabbing the action_type
+    ActionType action_type;
+    if(!player.isSneaking()) action_type = ActionType.CONSUME;
+    else action_type = ActionType.SHIFT_CONSUME;
+        
+    SamEnchantments.debugLog("Routing using action: '" + action + "', ActionType: '" + action_type.toString() + "'");
+    this.route(player, action, action_type, item, event, data, ticks); 
+  }
+
+  @Override
+  public void onEntityShootBow(EntityShootBowEvent event, LoreEnchantment ench,
+      String[] data)
+  {
+    if(data.length < 1) return;
+    
+    if(!(event.getEntity() instanceof Player)) return;
+
+    // Getting the time (should be the last value)
+    int time = StringUtil.getSeconds(data[data.length - 1]);
+    int ticks = time * 20;
+    
+    String action = "";
+    if(data.length > 1) for(String d : data) action += d + " ";
+    if(action.length() == 0) action = "All";
+    action = action.trim();
+    
+    // Getting the Player
+    Player player = (Player)event.getEntity();
+    ItemStack item = event.getBow();
+    
+    // Grabbing the action_type
+    ActionType action_type;
+    if(!player.isSneaking()) action_type = ActionType.SHOOT_BOW;
+    else action_type = ActionType.SHIFT_SHOOT_BOW;
+        
+    SamEnchantments.debugLog("Routing using action: '" + action + "', ActionType: '" + action_type.toString() + "'");
+    this.route(player, action, action_type, item, event, data, ticks);
+    
+  }
+
+  @Override
+  public void onEntityDamageEntity(EntityDamageByEntityEvent event,
+      LoreEnchantment ench, String[] data)
+  {
+    if(data.length < 1) return;
+    
+    if(!(event.getDamager() instanceof Player)) return;
+    
+    // Getting the time (should be the last value)
+    int time = StringUtil.getSeconds(data[data.length - 1]);
+    int ticks = time * 20;
+    
+    String action = "";
+    if(data.length > 1) for(String d : data) action += d + " ";
+    if(action.length() == 0) action = "All";
+    action = action.trim();
+    
+    // Getting the Player
+    Player player = (Player)event.getEntity();
+    ItemStack item = player.getItemInHand();
+    
+    // Grabbing the action_type
+    ActionType action_type;
+    if(!player.isSneaking()) action_type = ActionType.SHOOT_BOW;
+    else action_type = ActionType.SHIFT_SHOOT_BOW;
+        
+    SamEnchantments.debugLog("Routing using action: '" + action + "', ActionType: '" + action_type.toString() + "'");
+    this.route(player, action, action_type, item, event, data, ticks);
   }
 }
