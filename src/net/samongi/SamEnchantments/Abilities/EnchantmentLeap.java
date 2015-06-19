@@ -27,6 +27,7 @@ public class EnchantmentLeap extends LoreEnchantment implements OnPlayerInteract
   private String aim_exp;
   
   private boolean in_air;
+  private boolean reset_velocity;
   
   public EnchantmentLeap(JavaPlugin plugin, String name, String config_key)
   {
@@ -43,7 +44,8 @@ public class EnchantmentLeap extends LoreEnchantment implements OnPlayerInteract
     this.aim_exp = plugin.getConfig().getString("enchantments."+config_key+".aim-exp","0");
     aim_exp = aim_exp.toLowerCase().replace("pow", "Math.pow");
     
-    this.in_air = plugin.getConfig().getBoolean("enchantments."+config_key+".in-air", false);
+    this.in_air = plugin.getConfig().getBoolean("enchantments."+config_key+".in-air", false);    
+    this.reset_velocity = plugin.getConfig().getBoolean("enchantments."+config_key+".reset-velocity", false);
     
     this.leap_sound = plugin.getConfig().getString("enchantments."+config_key+".sound.leap","MAGMACUBE_JUMP");
     
@@ -206,7 +208,10 @@ public class EnchantmentLeap extends LoreEnchantment implements OnPlayerInteract
     Vector para_addition = new Vector(new_x_para, 0, new_z_para);
     Vector vert_addition = new Vector(0, new_y_vert, 0);
     
-    Vector new_velocity = event.getPlayer().getVelocity().add(aim_addition).add(para_addition).add(vert_addition);
+    Vector new_velocity = null;
+    if(this.reset_velocity )new_velocity = aim_addition.add(para_addition).add(vert_addition);
+    else new_velocity = event.getPlayer().getVelocity().add(aim_addition).add(para_addition).add(vert_addition);
+  
     event.getPlayer().setVelocity(new_velocity);
     
     Sound leap_sound = Sound.valueOf(this.leap_sound);

@@ -132,7 +132,7 @@ enchantments:
     max-level: 10
     top-cap: false
     bot-cap: false
-    damage-exp: "(L + 1 + D / 10) * B"
+    damage-exp: "(L + 1 - (D / 10)) * B"
   knockup:
     name: Knock Up
     type: KNOCK_UP
@@ -178,6 +178,17 @@ enchantments:
     action-type: RIGHT_CLICK
     vertical-exp: "0.5 * L * B"
     parallel-exp: "0.5 * L * B"
+    aim-exp: "0"
+    in-air: false
+    sound:
+      leap: MAGMACUBE_JUMP
+  disengage:
+    name: Disengage
+    type: LEAP
+    max-level: 10
+    action-type: RIGHT_CLICK
+    vertical-exp: "0.5 * L * B"
+    parallel-exp: "-0.5 * L * B"
     aim-exp: "0"
     in-air: false
     sound:

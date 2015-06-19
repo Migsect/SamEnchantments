@@ -423,6 +423,17 @@ public class EnchantmentRecharging extends LoreEnchantment implements OnPlayerIn
     /* Consume Actions
      * 
      */
+    if(action.startsWith("consume all"))
+    {
+      if(!action_type.equals(ActionType.CONSUME_ALL) &&
+          !action_type.equals(ActionType.CONSUME) &&
+          !action_type.equals(ActionType.SHIFT_CONSUME)) return;
+      if(data.length != 3) return;
+      
+      boolean success = doCancelRecharging(player, action, item, event);
+      if(success) return;
+      doSetRecharging(player, action, item, ticks);
+    }
     if(action.startsWith("consume"))
     {
       if(!action_type.equals(ActionType.CONSUME)) return;
@@ -444,6 +455,18 @@ public class EnchantmentRecharging extends LoreEnchantment implements OnPlayerIn
     /* Attack Actions
      * 
      */
+
+    if(action.startsWith("attack all"))
+    {
+      if(!action_type.equals(ActionType.ATTACK_ALL) &&
+          !action_type.equals(ActionType.ATTACK) &&
+          !action_type.equals(ActionType.SHIFT_ATTACK)) return;
+      if(data.length != 3) return;
+      
+      boolean success = doCancelRecharging(player, action, item, event);
+      if(success) return;
+      doSetRecharging(player, action, item, ticks);
+    }
     if(action.startsWith("attack"))
     {
       if(!action_type.equals(ActionType.ATTACK)) return;
@@ -465,6 +488,17 @@ public class EnchantmentRecharging extends LoreEnchantment implements OnPlayerIn
     /* Shoot Action
      * 
      */
+    if(action.startsWith("shoot bow all"))
+    {
+      if(!action_type.equals(ActionType.SHOOT_BOW_ALL) &&
+          !action_type.equals(ActionType.SHOOT_BOW) &&
+          !action_type.equals(ActionType.SHIFT_SHOOT_BOW)) return;
+      if(data.length != 4) return;
+      
+      boolean success = doCancelRecharging(player, action, item, event);
+      if(success) return;
+      doSetRecharging(player, action, item, ticks);
+    }
     if(action.startsWith("shoot bow"))
     {
       if(!action_type.equals(ActionType.SHOOT_BOW)) return;
@@ -486,6 +520,17 @@ public class EnchantmentRecharging extends LoreEnchantment implements OnPlayerIn
     /* Block Break Action
      * 
      */
+    if(action.startsWith("block break all"))
+    {
+      if(!action_type.equals(ActionType.BLOCK_BREAK_ALL) &&
+          !action_type.equals(ActionType.BLOCK_BREAK) &&
+          !action_type.equals(ActionType.SHIFT_BLOCK_BREAK)) return;
+      if(data.length != 4) return;
+      
+      boolean success = doCancelRecharging(player, action, item, event);
+      if(success) return;
+      doSetRecharging(player, action, item, ticks);
+    }
     if(action.startsWith("block break"))
     {
       if(!action_type.equals(ActionType.BLOCK_BREAK)) return;

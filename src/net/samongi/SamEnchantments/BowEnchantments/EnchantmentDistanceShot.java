@@ -2,12 +2,14 @@ package net.samongi.SamEnchantments.BowEnchantments;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Random;
 
 import javax.script.ScriptEngine;
 import javax.script.ScriptException;
 
 import org.bukkit.Location;
 import org.bukkit.entity.Arrow;
+import org.bukkit.entity.LivingEntity;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.EntityShootBowEvent;
 import org.bukkit.plugin.java.JavaPlugin;
@@ -18,6 +20,12 @@ import net.samongi.LoreEnchantments.Interfaces.OnEntityArrowHitEntity;
 import net.samongi.LoreEnchantments.Interfaces.OnEntityShootBow;
 import net.samongi.LoreEnchantments.Util.StringUtil;
 import net.samongi.SamEnchantments.SamEnchantments;
+import net.samongi.SamongiLib.Effects.Renderers.DustRenderer;
+import net.samongi.SamongiLib.Effects.Renderers.ParticleRenderer;
+import net.samongi.SamongiLib.Effects.Shapes.EffectCircle;
+import net.samongi.SamongiLib.Effects.Shapes.EffectLocationVector;
+import net.samongi.SamongiLib.Effects.Shapes.EffectVector;
+import net.samongi.SamongiLib.Vector.SamVector;
 
 public class EnchantmentDistanceShot extends LoreEnchantment implements OnEntityShootBow, OnEntityArrowHitEntity
 {
@@ -51,6 +59,7 @@ public class EnchantmentDistanceShot extends LoreEnchantment implements OnEntity
     }
   }
 
+  @SuppressWarnings("unused")
   @Override
   public void onEntityArrowHitEntity(EntityDamageByEntityEvent event, LoreEnchantment ench, String[] data)
   {
@@ -102,24 +111,34 @@ public class EnchantmentDistanceShot extends LoreEnchantment implements OnEntity
     shoot_locations.remove(event.getDamager().getEntityId());
     
     // Particle effects
-    /*
-    Vector arrow_vel = arrow.getVelocity();
-    ParticleRenderer renderer = new DustRenderer(255, 0, 0);
-    double severity = 6; //Math.ceil(damage/base_damage);
+    
+    SamVector arrow_vel = new SamVector(arrow.getVelocity());
+    
+    ParticleRenderer renderer = new DustRenderer(255, 0, 0, 100);
+    double severity = Math.ceil(damage/base_damage);
     SamEnchantments.debugLog("Enchantment Distance Shot found severity to be: " + severity);
-    int rays = (int) (3 * ((severity) - 1));
-    double deviation = 6;
+    int rays = (int) (6 * ((severity) - 1));
+    double deviation = 60;
     Random rand = new Random();
+    LivingEntity damaged_entity = (LivingEntity) event.getEntity();
+    Location entity_loc = damaged_entity.getEyeLocation().clone().setDirection(arrow_vel);
+    
+    if(false)
     for(int i = 0 ; i < rays ; i++)
     {
       double x_rotate = (-deviation/2) + (deviation * rand.nextDouble());
       double y_rotate = (-deviation/2) + (deviation * rand.nextDouble());
       double z_rotate = (-deviation/2) + (deviation * rand.nextDouble());
-      Vector new_ray = VectorUtil.rotateX(VectorUtil.rotateY(VectorUtil.rotateZ(arrow_vel, z_rotate), y_rotate), x_rotate);
-      EffectVector effect_vector = new EffectVector(event.getDamager().getLocation(), new_ray, renderer);
-      effect_vector.renderRandomly((int) (severity * 40));
+      SamVector new_ray = arrow_vel.rotateX(Math.toRadians(x_rotate)).rotateY(Math.toRadians(y_rotate)).rotateZ(Math.toRadians(z_rotate));
+      if(!(event.getEntity() instanceof LivingEntity)) break;
+      
+      EffectVector effect_vector = new EffectLocationVector(entity_loc, new_ray);
+      effect_vector.render((int) Math.ceil(severity * 10), renderer);
     }
-    */
+    
+    EffectCircle circle = new EffectCircle(entity_loc, arrow_vel, 2, true);
+    circle.render(100, renderer);
+    
   }
 
   @Override
