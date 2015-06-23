@@ -164,7 +164,7 @@ enchantments:
     name: Jump
     type: LEAP
     max-level: 10
-    action-type: RIGHT_CLICK
+    action-type: SHIFT_RIGHT_CLICK
     vertical-exp: "0.5 * L * B"
     parallel-exp: "0"
     aim-exp: "0"
@@ -186,7 +186,7 @@ enchantments:
     name: Disengage
     type: LEAP
     max-level: 10
-    action-type: RIGHT_CLICK
+    action-type: SHIFT_RIGHT_CLICK
     vertical-exp: "0.5 * L * B"
     parallel-exp: "-0.5 * L * B"
     aim-exp: "0"
