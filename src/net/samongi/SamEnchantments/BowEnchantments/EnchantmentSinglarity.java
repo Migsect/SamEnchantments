@@ -25,7 +25,7 @@ import net.samongi.SamongiLib.Effects.EffectUtil;
 
 public class EnchantmentSinglarity extends LoreEnchantment implements OnEntityArrowHitEntity, OnBlockArrowHit
 {
-private int max_level;
+  private int max_level;
   
   private String max_distance_exp;
   private String min_distance_exp;
@@ -36,8 +36,6 @@ private int max_level;
   public EnchantmentSinglarity(JavaPlugin plugin, String name, String config_key)
   {
     super(name, plugin);
-    this.max_level = plugin.getConfig().getInt("enchantments." + config_key + ".max-level", 10);
-
     this.max_level = plugin.getConfig().getInt("enchantments." + config_key + ".max-level", 10);
     
     this.max_distance_exp = plugin.getConfig().getString("enchantments."+config_key+".max-dist-exp","5 * L");
@@ -82,9 +80,9 @@ private int max_level;
     try{ench_level = Integer.parseInt(power);} catch(NumberFormatException e){}
     if(ench_level == 0) ench_level = StringUtil.numeralToInt(power);
     if(ench_level == 0) return;
-    SamEnchantments.debugLog("Enchantment Shadow Step found level to be: " + ench_level);
+    SamEnchantments.debugLog("Enchantment " + this.getName() + " found level to be: " + ench_level);
     if(ench_level > this.max_level) ench_level = this.max_level;
-    SamEnchantments.debugLog("Enchantment Shadow Step found 'true' level to be: " + ench_level);
+    SamEnchantments.debugLog("Enchantment " + this.getName() + " found 'true' level to be: " + ench_level);
     
 
     ScriptEngine eng = SamEnchantments.getJavaScriptEngine();
@@ -102,7 +100,7 @@ private int max_level;
       max_distance = value;
     }
     catch (ScriptException e){max_distance = 0;}
-    SamEnchantments.debugLog("Enchantment Shadow Dance found max-distance to be " + max_distance);
+    SamEnchantments.debugLog("Enchantment " + this.getName() + " found max-distance to be " + max_distance);
     
     // Getting the min distance
     double min_distance = 0;
@@ -118,7 +116,7 @@ private int max_level;
       min_distance = value;
     }
     catch (ScriptException e){min_distance = 0;}
-    SamEnchantments.debugLog("Enchantment Shadow Dance found min-distance to be " + min_distance);
+    SamEnchantments.debugLog("Enchantment " + this.getName() + " found min-distance to be " + min_distance);
     if(min_distance >= max_distance) return;
     
     // Start enchantment math
@@ -164,9 +162,9 @@ private int max_level;
     try{ench_level = Integer.parseInt(power);} catch(NumberFormatException e){}
     if(ench_level == 0) ench_level = StringUtil.numeralToInt(power);
     if(ench_level == 0) return;
-    SamEnchantments.debugLog("Enchantment Shadow Step found level to be: " + ench_level);
+    SamEnchantments.debugLog("Enchantment " + this.getName() + " found level to be: " + ench_level);
     if(ench_level > this.max_level) ench_level = this.max_level;
-    SamEnchantments.debugLog("Enchantment Shadow Step found 'true' level to be: " + ench_level);
+    SamEnchantments.debugLog("Enchantment " + this.getName() + " found 'true' level to be: " + ench_level);
     
 
     ScriptEngine eng = SamEnchantments.getJavaScriptEngine();
@@ -184,7 +182,7 @@ private int max_level;
       max_distance = value;
     }
     catch (ScriptException e){max_distance = 0;}
-    SamEnchantments.debugLog("Enchantment Shadow Dance found max-distance to be " + max_distance);
+    SamEnchantments.debugLog("Enchantment " + this.getName() + " found max-distance to be " + max_distance);
     
     // Getting the min distance
     double min_distance = 0;
@@ -200,7 +198,7 @@ private int max_level;
       min_distance = value;
     }
     catch (ScriptException e){min_distance = 0;}
-    SamEnchantments.debugLog("Enchantment Shadow Dance found min-distance to be " + min_distance);
+    SamEnchantments.debugLog("Enchantment " + this.getName() + " found min-distance to be " + min_distance);
     if(min_distance >= max_distance) return;
     
     // Start enchantment math

@@ -26,8 +26,8 @@ public class EnchantmentLeap extends LoreEnchantment implements OnPlayerInteract
   private String para_exp;
   private String aim_exp;
   
-  private boolean in_air;
-  private boolean reset_velocity;
+  private boolean reset_verticle;
+  private boolean reset_parallel;
   
   public EnchantmentLeap(JavaPlugin plugin, String name, String config_key)
   {
@@ -35,7 +35,9 @@ public class EnchantmentLeap extends LoreEnchantment implements OnPlayerInteract
     
     this.max_level = plugin.getConfig().getInt("enchantments."+config_key+".max-level",10);
 
-    this.action_type = ActionType.valueOf(plugin.getConfig().getString("enchantments."+config_key+".action-type","RIGHT_CLICK_AIR"));
+    String action_type_str = plugin.getConfig().getString("enchantments."+config_key+".action-type");
+    if(action_type_str == null) this.action_type = null;
+    else this.action_type = ActionType.getByString(action_type_str);
     
     this.vert_exp = plugin.getConfig().getString("enchantments."+config_key+".vertical-exp","0");
     vert_exp = vert_exp.toLowerCase().replace("pow", "Math.pow");
@@ -44,8 +46,8 @@ public class EnchantmentLeap extends LoreEnchantment implements OnPlayerInteract
     this.aim_exp = plugin.getConfig().getString("enchantments."+config_key+".aim-exp","0");
     aim_exp = aim_exp.toLowerCase().replace("pow", "Math.pow");
     
-    this.in_air = plugin.getConfig().getBoolean("enchantments."+config_key+".in-air", false);    
-    this.reset_velocity = plugin.getConfig().getBoolean("enchantments."+config_key+".reset-velocity", false);
+    this.reset_verticle = plugin.getConfig().getBoolean("enchantments."+config_key+".reset-vertical", false);
+    this.reset_parallel = plugin.getConfig().getBoolean("enchantments."+config_key+".reset-parallel", false);
     
     this.leap_sound = plugin.getConfig().getString("enchantments."+config_key+".sound.leap","MAGMACUBE_JUMP");
     
@@ -79,12 +81,17 @@ public class EnchantmentLeap extends LoreEnchantment implements OnPlayerInteract
 
   @Override
   public void onPlayerInteract(PlayerInteractEvent event, LoreEnchantment ench, String[] data)
-  {
-    if(!action_type.isSimilar(ActionType.getActionType(event))) return;
+  { 
+    ActionType action = null;
+    if(data.length > 1) action = ActionType.getByString(data[1]);
+    if(action == null) action = this.action_type;
+    if(action == null) return;
+    SamEnchantments.debugLog("Enchantment " + this.getName() + " found action to be: " + action);
+    SamEnchantments.debugLog("Enchantment " + this.getName() + " found event-action to be: " + ActionType.getActionType(event));
+    if(!action.isSimilar(ActionType.getActionType(event))) return;
+    SamEnchantments.debugLog("Enchantment " + this.getName() + " found actions to be similar");
     
     if(data.length < 1) return;
-    
-    if(!this.in_air && event.getPlayer().isFlying()) return;
     
     // Extracting the needed information from the data
     String power = data[0];
@@ -209,8 +216,11 @@ public class EnchantmentLeap extends LoreEnchantment implements OnPlayerInteract
     Vector vert_addition = new Vector(0, new_y_vert, 0);
     
     Vector new_velocity = null;
-    if(this.reset_velocity )new_velocity = aim_addition.add(para_addition).add(vert_addition);
-    else new_velocity = event.getPlayer().getVelocity().add(aim_addition).add(para_addition).add(vert_addition);
+    // base_vel
+    if(this.reset_verticle) base_vel.setY(0);
+    if(this.reset_parallel) base_vel.setX(0);
+    if(this.reset_parallel) base_vel.setZ(0);
+    new_velocity = base_vel.add(aim_addition).add(para_addition).add(vert_addition);
   
     event.getPlayer().setVelocity(new_velocity);
     

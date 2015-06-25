@@ -1,36 +1,36 @@
-package net.samongi.SamEnchantments.WeaponEnchantments;
+package net.samongi.SamEnchantments.BowEnchantments;
 
 import javax.script.ScriptEngine;
 import javax.script.ScriptException;
 
+import org.bukkit.Location;
+import org.bukkit.entity.Arrow;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.util.Vector;
 
 import net.samongi.LoreEnchantments.EventHandling.LoreEnchantment;
-import net.samongi.LoreEnchantments.Interfaces.OnEntityDamageEntity;
+import net.samongi.LoreEnchantments.Interfaces.OnEntityArrowHitEntity;
 import net.samongi.LoreEnchantments.Util.StringUtil;
 import net.samongi.SamEnchantments.SamEnchantments;
 import net.samongi.SamongiLib.Effects.EffectUtil;
 
-public class EnchantmentAssassination extends LoreEnchantment implements OnEntityDamageEntity
+public class EnchantmentHeadShot extends LoreEnchantment implements OnEntityArrowHitEntity
 {
-  @SuppressWarnings("unused")
-  private JavaPlugin plugin;
   private int max_level;
   private String exp;
-  private double arc;
-
-  public EnchantmentAssassination(JavaPlugin plugin, String name, String config_key)
+  private double head_size;
+  
+  public EnchantmentHeadShot(JavaPlugin plugin, String name, String config_key)
   {
     super(name, plugin);
-    this.plugin = plugin;
-    
     this.max_level = plugin.getConfig().getInt("enchantments." + config_key + ".max-level", 10);
+    
     this.exp = plugin.getConfig().getString("enchantments."+config_key+".exp","B * (1 + (0.5 * L))");
     this.exp = this.exp.toLowerCase().replace("pow", "Math.pow");
-    this.arc = plugin.getConfig().getDouble("enchantments." + config_key + ".arc", 45);
+    
+    this.head_size = plugin.getConfig().getDouble("enchantments." + config_key + ".radius", 0.3);
     
     // Testing the expression:
     SamEnchantments.debugLog("Testing expression: '" + this.exp + "'");
@@ -46,31 +46,43 @@ public class EnchantmentAssassination extends LoreEnchantment implements OnEntit
   }
 
   @Override
-  public void onEntityDamageEntity(EntityDamageByEntityEvent event, LoreEnchantment ench, String[] data)
+  public void onEntityArrowHitEntity(EntityDamageByEntityEvent event, LoreEnchantment ench, String[] data)
   {
-    if(!(event.getDamager() instanceof LivingEntity)) return;
-    if(!(event.getEntity() instanceof LivingEntity)) return;
-    LivingEntity damager = (LivingEntity)event.getDamager();
-    LivingEntity entity = (LivingEntity)event.getEntity();
-    
-    // Extracting the needed information from the data
     if(data.length < 1) return;
+    // Extracting the needed information from the data
     String power = data[0];
     int ench_level = 0;
     try{ench_level = Integer.parseInt(power);} catch(NumberFormatException e){}
     if(ench_level == 0) ench_level = StringUtil.numeralToInt(power);
     if(ench_level == 0) return;
-    SamEnchantments.debugLog("Enchantment Assassination found level to be: " + ench_level);
+    SamEnchantments.debugLog("Enchantment " + this.getName() + " found level to be: " + ench_level);
     if(ench_level > this.max_level) ench_level = this.max_level;
-    SamEnchantments.debugLog("Enchantment Assassination found 'true' level to be: " + ench_level);
+    SamEnchantments.debugLog("Enchantment " + this.getName() + " found 'true' level to be: " + ench_level);
+
+    if(!(event.getEntity() instanceof LivingEntity)) return;
+    LivingEntity entity = (LivingEntity)event.getEntity();
+    Arrow arrow = (Arrow)event.getDamager();
     
-    // Time to check and see if the player's vectors are within acceptable bounds to allow the assassination.
-    Vector d_direction = damager.getLocation().getDirection();
-    Vector e_direction = entity.getLocation().getDirection();
-    double found_arc = Math.toDegrees(d_direction.angle(e_direction));
-    SamEnchantments.debugLog("Enchantment " + this.getName() + " found arc to be: " + found_arc);
-    if(found_arc > this.arc) return;
+    Location entity_loc = entity.getLocation();
+    Vector arrow_direction = event.getDamager().getVelocity();
+    Location head_loc = new Location(entity_loc.getWorld(), entity_loc.getX(), entity_loc.getY() + entity.getEyeHeight(), entity_loc.getZ());
+    SamEnchantments.debugLog("Enchantment " + this.getName() + " found 'entity_loc' to be: ["+ entity_loc.getX() + ", " + entity_loc.getY() + ", " + entity_loc.getZ() + "]");
+    SamEnchantments.debugLog("Enchantment " + this.getName() + " found 'head_loc' to be: ["+ head_loc.getX() + ", " + head_loc.getY() + ", " + head_loc.getZ() + "]");
     
+    // This is the degress of difference needed to indicate a headshot
+    double radius_sqr = arrow.getLocation().distanceSquared(head_loc);
+    double degree_sqr = (Math.pow(head_size,2)) / radius_sqr;
+    SamEnchantments.debugLog("Enchantment " + this.getName() + " found 'degree_sqr' to be: " + degree_sqr);
+    
+    // Getting the vector from the arrow to the player's head.
+    double x = head_loc.getX() - arrow.getLocation().getX();
+    double y = head_loc.getY() - arrow.getLocation().getY();
+    double z = head_loc.getZ() - arrow.getLocation().getZ();
+    
+    Vector v = new Vector(x, y, z);
+    double degree_comp = Math.pow(arrow_direction.angle(v), 2);
+    SamEnchantments.debugLog("Enchantment " + this.getName() + " found 'degree_comp' to be: " + degree_comp);
+    if(degree_comp >= degree_sqr) return;
     
     SamEnchantments.debugLog("Enchantment " + this.getName() + " base damage: " + event.getDamage());
     double base_damage = event.getDamage();

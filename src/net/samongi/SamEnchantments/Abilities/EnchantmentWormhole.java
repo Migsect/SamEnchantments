@@ -45,7 +45,9 @@ private int max_level;
     this.min_distance_exp = this.min_distance_exp.toLowerCase().replace("pow", "Math.pow");
     this.dispersion = plugin.getConfig().getDouble("enchantments." + config_key + ".dispersion", 1);
     
-    this.action_type = ActionType.valueOf(plugin.getConfig().getString("enchantments."+config_key+".action-type","RIGHT_CLICK_AIR"));
+    String action_type_str = plugin.getConfig().getString("enchantments."+config_key+".action-type");
+    if(action_type_str == null) this.action_type = null;
+    else this.action_type = ActionType.getByString(action_type_str);
     
     this.teleport_sound = plugin.getConfig().getString("enchantments."+config_key+".sound.teleport","ENDERMAN_TELEPORT");
     
@@ -76,7 +78,14 @@ private int max_level;
   @Override
   public void onPlayerInteract(PlayerInteractEvent event, LoreEnchantment ench, String[] data)
   {
-    if(!action_type.isSimilar(ActionType.getActionType(event))) return;
+    ActionType action = null;
+    if(data.length > 1) action = ActionType.getByString(data[1]);
+    if(action == null) action = this.action_type;
+    if(action == null) return;
+    SamEnchantments.debugLog("Enchantment " + this.getName() + " found action to be: " + action);
+    SamEnchantments.debugLog("Enchantment " + this.getName() + " found event-action to be: " + ActionType.getActionType(event));
+    if(!action.isSimilar(ActionType.getActionType(event))) return;
+    SamEnchantments.debugLog("Enchantment " + this.getName() + " found actions to be similar");
     
     if(data.length < 1) return;
     

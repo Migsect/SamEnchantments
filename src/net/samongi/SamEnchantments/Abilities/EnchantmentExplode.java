@@ -36,7 +36,9 @@ public class EnchantmentExplode extends LoreEnchantment implements OnPlayerInter
     this.destroy_blocks = plugin.getConfig().getBoolean("enchantments."+config_key+".destroy-blocks", false);
     this.set_fire = plugin.getConfig().getBoolean("enchantments."+config_key+".set-fire", false);
     
-    this.action_type = ActionType.valueOf(plugin.getConfig().getString("enchantments."+config_key+".action-type","RIGHT_CLICK_AIR"));
+    String action_type_str = plugin.getConfig().getString("enchantments."+config_key+".action-type");
+    if(action_type_str == null) this.action_type = null;
+    else this.action_type = ActionType.getByString(action_type_str);
     
     // Testing the expressions:
     ScriptEngine eng = SamEnchantments.getJavaScriptEngine();
@@ -57,7 +59,14 @@ public class EnchantmentExplode extends LoreEnchantment implements OnPlayerInter
   public void onPlayerInteract(PlayerInteractEvent event, LoreEnchantment ench,
       String[] data)
   {
-    if(!this.action_type.isSimilar(ActionType.getActionType(event))) return;
+    ActionType action = null;
+    if(data.length > 1) action = ActionType.getByString(data[1]);
+    if(action == null) action = this.action_type;
+    if(action == null) return;
+    SamEnchantments.debugLog("Enchantment " + this.getName() + " found action to be: " + action);
+    SamEnchantments.debugLog("Enchantment " + this.getName() + " found event-action to be: " + ActionType.getActionType(event));
+    if(!action.isSimilar(ActionType.getActionType(event))) return;
+    SamEnchantments.debugLog("Enchantment " + this.getName() + " found actions to be similar");
     
     if(data.length < 1) return;
     

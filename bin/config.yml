@@ -46,7 +46,7 @@ enchantments:
     name: Shadow Step
     type: SHADOW_STEP
     max-level: 10
-    min-dist-exp: '5'
+    min-dist-exp: '0'
     max-dist-exp: '5 * L'
     behind-distance: 1
     action-type: RIGHT_CLICK
@@ -56,7 +56,7 @@ enchantments:
     name: Shadow Dance
     type: SHADOW_DANCE
     max-level: 10
-    min-dist-exp: '5'
+    min-dist-exp: '0'
     max-dist-exp: '5 * L'
     behind-distance: 1
     action-type: SHIFT_RIGHT_CLICK
@@ -66,7 +66,7 @@ enchantments:
     name: Shadow Grip
     type: SHADOW_GRIP
     max-level: 10
-    min-dist-exp: '5'
+    min-dist-exp: '0'
     max-dist-exp: '5 * L'
     front-distance: 1
     action-type: RIGHT_CLICK
@@ -76,7 +76,7 @@ enchantments:
     name: Explode
     type: EXPLODE
     max-level: 10
-    power-exp: 4 * L
+    power-exp: 2 * L
     action-type: RIGHT_CLICK
   explosive:
     name: Explosive
@@ -146,7 +146,16 @@ enchantments:
     vertical-exp: '0.35'
     parallel-exp: "L * B"
     aim-exp: "0"
-    in-air: true
+    sound:
+      leap: WITHER_SHOOT
+  retreat:
+    name: Retreat
+    type: LEAP
+    max-level: 10
+    action-type: RIGHT_CLICK
+    vertical-exp: '0.35'
+    parallel-exp: "-L * B"
+    aim-exp: "0"
     sound:
       leap: WITHER_SHOOT
   dart:
@@ -157,18 +166,27 @@ enchantments:
     vertical-exp: '0'
     parallel-exp: '0'
     aim-exp: 'L * B'
-    in-air: true
     sound:
       leap: WITHER_SHOOT
   jump:
     name: Jump
     type: LEAP
     max-level: 10
-    action-type: SHIFT_RIGHT_CLICK
+    action-type: RIGHT_CLICK
     vertical-exp: "0.5 * L * B"
     parallel-exp: "0"
     aim-exp: "0"
-    in-air: false
+    sound:
+      leap: MAGMACUBE_JUMP
+  doublejump:
+    name: Double Jump
+    type: LEAP
+    max-level: 10
+    action-type: RIGHT_CLICK
+    vertical-exp: "0.5 * L * B"
+    parallel-exp: "0"
+    aim-exp: "0"
+    reset-vertical: true
     sound:
       leap: MAGMACUBE_JUMP
   leap:
@@ -179,18 +197,36 @@ enchantments:
     vertical-exp: "0.5 * L * B"
     parallel-exp: "0.5 * L * B"
     aim-exp: "0"
-    in-air: false
     sound:
       leap: MAGMACUBE_JUMP
   disengage:
     name: Disengage
     type: LEAP
     max-level: 10
-    action-type: SHIFT_RIGHT_CLICK
+    action-type: RIGHT_CLICK
     vertical-exp: "0.5 * L * B"
     parallel-exp: "-0.5 * L * B"
     aim-exp: "0"
-    in-air: false
     sound:
       leap: MAGMACUBE_JUMP
-  
+  command:
+    name: Command
+    type: COMMAND
+  headshot:
+    name: Headshot
+    type: HEADSHOT
+    exp: "B * (1 + (0.5 * L))"
+    radius: 0.3
+  injecting:
+    name: Injecting
+    type: INJECTING
+    action-type: RIGHT_CLICK
+    sound:
+      inject: PISTON_EXTEND
+  splashing:
+    name: Splashing
+    type: SPLASHING
+    action-type: RIGHT_CLICK
+    radius-exp: "5 * L"
+    sound:
+      inject: ZOMBIE_INFECT
