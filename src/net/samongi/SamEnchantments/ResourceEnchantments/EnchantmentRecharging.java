@@ -15,9 +15,9 @@ import net.samongi.LoreEnchantments.Util.ActionUtil.ActionType;
 import net.samongi.LoreEnchantments.Util.EntityUtil;
 import net.samongi.LoreEnchantments.Util.StringUtil;
 import net.samongi.SamEnchantments.SamEnchantments;
-import net.samongi.SamongiLib.Items.ComparableItemStack;
-import net.samongi.SamongiLib.Items.ComparableItemStack.ItemComparison;
-import net.samongi.SamongiLib.Items.ReferenceItemStack;
+import net.samongi.SamongiLib.Items.Wrappers.ComparableItemStack;
+import net.samongi.SamongiLib.Items.Wrappers.ReferenceItemStack;
+import net.samongi.SamongiLib.Items.Wrappers.ComparableItemStack.ItemComparison;
 
 import org.bukkit.Bukkit;
 import org.bukkit.Sound;
