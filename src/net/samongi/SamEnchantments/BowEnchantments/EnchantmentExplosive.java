@@ -57,9 +57,9 @@ public class EnchantmentExplosive extends LoreEnchantment implements OnArrowHit
     try{ench_level = Integer.parseInt(power);} catch(NumberFormatException e){}
     if(ench_level == 0) ench_level = StringUtil.numeralToInt(power);
     if(ench_level == 0) return;
-    SamEnchantments.debugLog("Enchantment Shadow Step found level to be: " + ench_level);
+    SamEnchantments.debugLog("Enchantment " + this.getName() + " found level to be: " + ench_level);
     if(ench_level > this.max_level) ench_level = this.max_level;
-    SamEnchantments.debugLog("Enchantment Shadow Step found 'true' level to be: " + ench_level);
+    SamEnchantments.debugLog("Enchantment " + this.getName() + " found 'true' level to be: " + ench_level);
     
     Arrow arrow = (Arrow) event.getEntity();
     
